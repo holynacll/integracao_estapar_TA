@@ -1,0 +1,42 @@
+[project]
+name = "totalatacadot1"
+version = "0.1.0"
+description = "Add your description here"
+license.file = "LICENSE"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "briefcase>=0.3.22",
+    "pyside6>=6.8.2.1",
+    "qt-material>=2.14",
+]
+
+# This project was generated with 0.3.22 using template: https://github.com/beeware/briefcase-template@v0.3.22
+[tool.briefcase]
+project_name = "Total Atacado T1"
+bundle = "com.example"
+version = "0.0.1"
+url = "https://example.com/totalatacadot1"
+license.file = "LICENSE"
+author = "Alexandre Lima"
+author_email = "alexandrecurylima@gmail.com"
+
+[tool.briefcase.app.totalatacadot1]
+formal_name = "Total Atacado T1"
+description = "A application for handling integration between total atacado and estapar"
+long_description = """More details about the app should go here.
+"""
+sources = [
+    "src/totalatacadot1",
+]
+test_sources = [
+    "tests",
+]
+
+requires = [
+    "pyside6>=6.8.2.1",
+    "qt-material>=2.14",
+]
+test_requires = [
+    "pytest",
+]
