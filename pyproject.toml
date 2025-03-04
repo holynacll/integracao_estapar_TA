@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 license.file = "LICENSE"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "briefcase>=0.3.22",
     "pyside6>=6.8.2.1",
