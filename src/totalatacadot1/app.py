@@ -1,19 +1,22 @@
 import sys
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, Slot
 from PySide6.QtWidgets import (
-    QApplication, QLabel, QPushButton, QWidget, QVBoxLayout, QMainWindow, QLineEdit, QMessageBox
+    QApplication, QLabel, QPushButton, QWidget, QVBoxLayout, QMainWindow, QLineEdit, QMessageBox, QSpacerItem, QSizePolicy, QFrame
 )
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QFont
 from qt_material import apply_stylesheet
+
+from .config import get_assets_path
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Total Atacado T1")
+        self.setWindowTitle("Total Atacado")
         # add icon ico file here
-        self.setWindowIcon(QIcon("icon.ico"))
-        self.setGeometry(100, 100, 600, 400)
+        icon_path = str(get_assets_path() / "images" / "logo.jpeg")
+        self.setWindowIcon(QIcon(icon_path))
+        self.setGeometry(100, 100, 1024, 768)
 
         self.main_widget = MainWidget()
         self.setCentralWidget(self.main_widget)
@@ -25,24 +28,49 @@ class MainWidget(QWidget):
         self.init_ui()
 
     def init_ui(self):
+        # Criando um frame para aplicar o background
+        self.frame = QFrame(self)
+        self.frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        background_image_path = str(get_assets_path() / "images" / "background.png")
+        self.frame.setStyleSheet(f"""
+            QFrame {{
+                background-image: url({background_image_path}); 
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: cover;
+                background-attachment: fixed;
+                background-color: #f5f5f5;
+            }}
+        """)
+        
+        # Title
+        self.title = QLabel("Integração Estapar")
+        self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title.setFont(QFont("Arial", 36, QFont.Weight.Bold))
+        self.title.setFrameShadow(QLabel.Shadow.Plain)
+        self.title.setStyleSheet("""
+            color: #222;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        """)
+        
         self.label = QLabel("Código do Ticket:")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         self.label.setStyleSheet("""
-            font-size: 16px;
-            font-weight: bold;
-            color: #333;
+             color: #444;
         """)
 
         self.edit = QLineEdit()
         self.edit.setPlaceholderText("Escreva o código do ticket aqui")
-        self.edit.setFixedHeight(40)
+        self.edit.setFixedHeight(45)
         self.edit.setStyleSheet("""
             QLineEdit {
-                font-size: 14px;
-                padding: 8px;
-                border: 2px solid #888;
-                border-radius: 8px;
+                font-size: 16px;
+                padding: 10px;
+                border: 2px solid #bbb;
+                border-radius: 10px;
                 background-color: white;
+                box-shadow: 2 2 5px rgba(0, 0, 0, 0.1);
             }
 
             QLineEdit:focus {
@@ -54,77 +82,52 @@ class MainWidget(QWidget):
             QLineEdit:hover {
                 border: 2px solid #0056b3;
             }
-
-            QLineEdit:disabled {
-                background-color: #E0E0E0;
-                color: #888;
-            }
         """)
 
 
-        self.button = QPushButton("Salvar")
-        self.button.setFixedHeight(40)
+        self.button = QPushButton("Registrar")
+        self.button.setFixedHeight(50)
+        self.button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.button.setStyleSheet("""
             QPushButton {
-                font-size: 14px;
+                font-size: 16px;
                 font-weight: bold;
-                background-color: #007BFF;
+                background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, stop:0 #007BFF, stop:1 #0056b3);
                 color: white;
-                border-radius: 8px;
-                padding: 10px;
+                border-radius: 12px;
+                padding: 12px;
                 border: none;
+                box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.2);
             }
             
             QPushButton:hover {
-                background-color: #0056b3;
+                background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, stop:0 #0056b3, stop:1 #003d80);
             }
             
             QPushButton:pressed {
                 background-color: #003d80;
+                transform: scale(0.98);
             }
         """)
 
         # Conectar botão às funções
         self.button.clicked.connect(self.save_code)
 
-        layout = QVBoxLayout()
-        layout.setSpacing(15)
+        layout = QVBoxLayout(self.frame)
+        layout.setSpacing(20)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.title)
+        # Adiciona um espaço para empurrar os elementos para baixo
+        layout.addSpacerItem(QSpacerItem(20, 50, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
         layout.addWidget(self.label)
         layout.addWidget(self.edit)
         layout.addWidget(self.button)
-        self.setLayout(layout)
-
-    @Slot()
-    def animate_border(self, widget, color):
-        """Cria animação suave para mudar a borda do campo"""
-        animation = QPropertyAnimation(widget, b"styleSheet")
-        animation.setDuration(200)
-        animation.setEasingCurve(QEasingCurve.Type.OutQuad)
-        animation.setStartValue(widget.styleSheet())
-        animation.setEndValue(f"""
-            font-size: 14px;
-            padding: 5px;
-            border: 2px solid {color};
-            border-radius: 8px;
-        """)
-        animation.start()
-
-    @Slot()
-    def animate_error(self):
-        """Anima o campo de entrada para indicar erro"""
-        animation = QPropertyAnimation(self.edit, b"styleSheet")
-        animation.setDuration(300)
-        animation.setEasingCurve(QEasingCurve.Type.OutBounce)
-        animation.setStartValue(self.edit.styleSheet())
-        animation.setEndValue("""
-            font-size: 14px;
-            padding: 5px;
-            border: 2px solid red;
-            border-radius: 8px;
-            background-color: #FFDDDD;
-        """)
-        animation.start()
+        layout.addSpacerItem(QSpacerItem(20, 50, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+        
+        
+        main_layout = QVBoxLayout(self)
+        main_layout.addWidget(self.frame)
+        self.setLayout(main_layout)
 
     @Slot()
     def save_code(self):
@@ -132,19 +135,17 @@ class MainWidget(QWidget):
         code = self.edit.text().strip()
 
         if code == "some_value":
-            QMessageBox.information(self, "Sucesso", "Código salvo com sucesso! 🎉")
+            QMessageBox.information(self, "Sucesso", "Código salvo com sucesso! ✅")
             self.edit.clear()
-            self.animate_border(self.edit, "#888")  # Volta a cor original
         else:
             QMessageBox.warning(self, "Erro", "Código inválido! ❌")
-            self.animate_error()  # Anima erro no campo
 
 
 def main():
     app = QApplication(sys.argv)
 
     # Aplicar tema do qt-material
-    # apply_stylesheet(app, theme='light_blue.xml')
+    # apply_stylesheet(app, theme='dark_medical.xml')
 
     window = MainWindow()
     window.show()
