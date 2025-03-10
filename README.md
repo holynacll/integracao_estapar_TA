@@ -40,6 +40,29 @@ Run the application using:
 python src/totalatacadot1/app.py
 ```
 
+## 2. Database
+
+docker volume create oracle_db_data
+
+docker run -d --name oracle_db \
+-p 1521:1521 -p 5500:5500 \
+-e ORACLE_PWD=password \
+-v oracle_db_data:/opt/oracle/oradata \
+container-registry.oracle.com/database/express:21.3.0-xe
+
+docker exec -i oracle_db sqlplus sys/password@//localhost:1521/XEPDB1 as sysdba <<EOF
+CREATE USER total_atacado_user IDENTIFIED BY password;
+GRANT CREATE SESSION TO total_atacado_user;
+GRANT CREATE TABLE TO total_atacado_user;
+GRANT UNLIMITED TABLESPACE TO total_atacado_user;
+GRANT CREATE SEQUENCE TO total_atacado_user;
+GRANT CREATE PROCEDURE TO total_atacado_user;
+EOF
+
+docker exec -i oracle_db sqlplus sys/password@//localhost:1521/XEPDB1 as sysdba <<EOF
+SELECT username FROM dba_users WHERE username = 'MEU_USUARIO';
+EOF
+
 ## Application Structure
 
 - `MainWindow`: Main application window with icon and geometry settings

@@ -7,8 +7,10 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "briefcase>=0.3.22",
+    "oracledb>=3.0.0",
     "pyside6>=6.8.2.1",
     "qt-material>=2.14",
+    "sqlalchemy>=2.0.38",
 ]
 
 # This project was generated with 0.3.22 using template: https://github.com/beeware/briefcase-template@v0.3.22
@@ -36,6 +38,8 @@ test_sources = [
 requires = [
     "pyside6>=6.8.2.1",
     "qt-material>=2.14",
+    "oracledb>=3.0.0",
+    "sqlalchemy>=2.0.38"
 ]
 test_requires = [
     "pytest",
