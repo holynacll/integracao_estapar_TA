@@ -1,7 +1,7 @@
 from threading import Thread
 from time import sleep
 from totalatacadot1.dml_tables import create_tables
-from totalatacadot1.controller import AppController
+from totalatacadot1.controller_gui import AppController
 from totalatacadot1.models import PDV, PDVItem
 from totalatacadot1.repository import create_pdv_control_item, get_last_pdv_pedido, get_pdv_control_item_by_num_ped_ecf
 
