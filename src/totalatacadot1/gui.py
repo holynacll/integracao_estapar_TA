@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QIcon, QFont, QPixmap, QPainter, QBrush
 from qt_material import apply_stylesheet
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
 from totalatacadot1.controller_integration_service import DiscountCreationDto, create_discount
 from totalatacadot1.custom_message_box import CustomMessageBox
@@ -17,11 +17,12 @@ from totalatacadot1.utils import resolve_date_to_timestamp
 
 from .config import get_assets_path
 
-load_dotenv()
+# load_dotenv()
 
-IP = os.environ.get("IP")
-PORT = int(os.environ.get("PORT"))
-os.environ["QT_QPA_PLATFORM"] = "xcb"
+# Estapar API
+IP="10.7.39.10"
+PORT="3000"
+# os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 
 class MainWindow(QMainWindow):
