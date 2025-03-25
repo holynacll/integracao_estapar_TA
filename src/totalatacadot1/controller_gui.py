@@ -9,9 +9,8 @@ class AppController:
         self.app = QApplication(sys.argv)
         self.window = MainWindow()
 
-    def show_gui(self, num_ped_ecf: int):
+    def show_gui(self):
         """Show the hidden GUI window."""
-        print(f'Exibindo GUI para o ticket {num_ped_ecf}')
         self.window.show()
 
     def is_gui_open(self) -> bool:

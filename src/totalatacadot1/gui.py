@@ -6,11 +6,21 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QIcon, QFont, QPixmap, QPainter, QBrush
 from qt_material import apply_stylesheet
+from dotenv import load_dotenv
 
+from totalatacadot1.controller_integration_service import DiscountCreationDto, create_discount
 from totalatacadot1.custom_message_box import CustomMessageBox
+from totalatacadot1.integration_service import IntegrationService
+from totalatacadot1.models import PDV
+from totalatacadot1.repository import get_last_pdv_pedido
+from totalatacadot1.utils import resolve_date_to_timestamp
 
 from .config import get_assets_path
 
+load_dotenv()
+
+IP = os.environ.get("IP")
+PORT = int(os.environ.get("PORT"))
 os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 
@@ -30,13 +40,16 @@ class MainWindow(QMainWindow):
         event.ignore()
         self.hide()
 
+
 class MainWidget(QWidget):
     def __init__(self):
         super().__init__()
         self.background_image_path = str(get_assets_path() / "images" / "background-2.jpg")
         self.success_icon_path = str(get_assets_path() / "images" / "checked.png")
         self.error_icon_path = str(get_assets_path() / "images" / "warning.png")
+        self.pdv_pedido: PDV = get_last_pdv_pedido()
         self.init_ui()
+        
 
     def init_ui(self):        
         # Carrega a imagem original
@@ -151,6 +164,36 @@ class MainWidget(QWidget):
     def validate_ticket(self):
         """Verifica o ticket para validação e exibe mensagem de sucesso ou erro"""
         ticket_code = self.edit.text().strip()
+
+        if not ticket_code:
+            # Exibe uma caixa de mensagem personalizada para erro
+            error_box = CustomMessageBox(
+                "Erro", 
+                "Código inválido!\nPor favor, verifique o código e tente novamente.\n", 
+                self.error_icon_path, 
+                self
+            )
+            error_box.exec()
+            return
+
+        # # Instância do serviço
+        service = IntegrationService(IP, PORT)
+
+        # Criar uma requisição de exemplo
+        request = DiscountCreationDto(
+            card_barcode=ticket_code,
+            terminal_id=self.pdv_pedido.num_caixa,
+            num_cupom=self.pdv_pedido.num_cupom,
+            discount_datetime=resolve_date_to_timestamp(self.pdv_pedido.data, self.pdv_pedido.hora_cupom),
+            purchase_value=int(self.pdv_pedido.vl_total * 100),
+            fiscal_document="04558054000173",  # CNPJ válido
+        )
+
+        # # Chamar a função para criar desconto
+        result = create_discount(request, service)
+
+        # Exibir o resultado
+        print(f"Success: {result.Success}, Message: {result.Message}")
 
         if ticket_code == "some_value":
             # Exibe uma caixa de mensagem personalizada para sucesso

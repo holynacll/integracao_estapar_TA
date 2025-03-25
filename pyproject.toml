@@ -9,6 +9,7 @@ dependencies = [
     "briefcase>=0.3.22",
     "oracledb>=3.0.0",
     "pyside6>=6.8.2.1",
+    "python-dotenv>=1.0.1",
     "qt-material>=2.14",
     "sqlalchemy>=2.0.38",
 ]
@@ -39,7 +40,8 @@ requires = [
     "pyside6>=6.8.2.1",
     "qt-material>=2.14",
     "oracledb>=3.0.0",
-    "sqlalchemy>=2.0.38"
+    "sqlalchemy>=2.0.38",
+    "python-dotenv>=1.0.1"
 ]
 test_requires = [
     "pytest",

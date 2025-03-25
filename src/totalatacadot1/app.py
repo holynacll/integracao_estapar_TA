@@ -21,7 +21,8 @@ def background_task(controller: AppController):
         pdv_control_item = get_pdv_control_item_by_num_ped_ecf(last_pdv_pedido.num_ped_ecf)
         if pdv_control_item is None:
             pdv_control_item: PDVItem = create_pdv_control_item(last_pdv_pedido.num_ped_ecf)
-            controller.show_gui(pdv_control_item.num_ped_ecf)
+            """Solicita a validação do ticket."""
+            controller.show_gui()
 
 
 def main():

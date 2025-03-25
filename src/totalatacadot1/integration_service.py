@@ -4,6 +4,7 @@ import socket
 import struct
 import logging
 import time
+import traceback
 
 # Configuração do logger
 logging.basicConfig(level=logging.WARNING)
@@ -17,25 +18,39 @@ class CommandType(Enum):
 
 @dataclass
 class DiscountRequest:
-    msg_block_size: int = 0 # tamanho total da mensagem
-    cmd_filler: int = 0 # Reservado
-    cmd_type: CommandType = CommandType.CONSULT
-    cmd_tmt: int = time.time() # timestamp da requisição
-    cmd_signature: str = "04558054000173" # CNPJ da empresa (null-terminated)
-    cmd_company_sign: bytes = b"ESTAPAR" # assinatura da aplicação (null-terminated)
-    # cmd_seq_no: int = 1  # número sequencial da operação
     cmd_term_id: int # Numero do terminal do requisitante (NUM_CAIXA)
     cmd_card_id: str # Código de barras do cartão
     cmd_op_value: int # Valor da compra em centavos
-    cmd_op_seq_no: int = 1 # Número sequencial do cupom fiscal
+    cmd_op_seq_no: int # Número sequencial do cupom fiscal
+    cmd_tmt: int # timestamp da requisição
+    msg_block_size: int = 0 # tamanho do bloco da mensagem
+    cmd_filler: int = 0 # Reservado
+    cmd_type: CommandType = CommandType.CONSULT
+    cmd_signature: str = "04558054000173" # CNPJ da empresa (null-terminated)
+    cmd_company_sign: bytes = b"ESTAPAR" # assinatura da aplicação (null-terminated)
+    cmd_seq_no: int = 1  # número sequencial da operação
     cmd_ruf_0: int = 0xFFFFFFFF # Reservado
     cmd_ruf_1: int = 0xFFFFFFFF # Reservado
     cmd_sale_type: int = 0xFFFFFFFF # Tipo de venda (reservado)
-    cmd_op_display_len: int = 0 # Número de caracteres do visor do operador    
+    cmd_op_display_len: int = 0 # Número de caracteres do visor do operador
     
     
-    def serialize(self, command_sequence_number: int):
+    def serialize(self):
         """Serializa a requisição em bytes, conforme o manual."""
+        print(f"cmd_filler: {self.cmd_filler} ({type(self.cmd_filler)})")
+        print(f"cmd_type: {self.cmd_type.value} ({type(self.cmd_type.value)})")
+        print(f"cmd_tmt: {self.cmd_tmt} ({type(self.cmd_tmt)})")
+        print(f"cmd_signature: {self.cmd_signature} ({type(self.cmd_signature)})")
+        print(f"cmd_company_sign: {self.cmd_company_sign} ({type(self.cmd_company_sign)})")
+        print(f"cmd_seq_no: {self.cmd_seq_no} ({type(self.cmd_seq_no)})")
+        print(f"cmd_term_id: {self.cmd_term_id} ({type(self.cmd_term_id)})")
+        print(f"cmd_card_id: {self.cmd_card_id} ({type(self.cmd_card_id)})")
+        print(f"cmd_op_value: {self.cmd_op_value} ({type(self.cmd_op_value)})")
+        print(f"cmd_op_seq_no: {self.cmd_op_seq_no} ({type(self.cmd_op_seq_no)})")
+        print(f"cmd_ruf_0: {self.cmd_ruf_0} ({type(self.cmd_ruf_0)})")
+        print(f"cmd_ruf_1: {self.cmd_ruf_1} ({type(self.cmd_ruf_1)})")
+        print(f"cmd_sale_type: {self.cmd_sale_type} ({type(self.cmd_sale_type)})")
+        print(f"cmd_op_display_len: {self.cmd_op_display_len} ({type(self.cmd_op_display_len)})")
         message = struct.pack(
             "<HHI15s16sII64sIIIIII",  # Novo formato corrigido
             self.cmd_filler,  # cmdFiller (2 bytes)
@@ -43,7 +58,7 @@ class DiscountRequest:
             self.cmd_tmt,  # cmdTmt (4 bytes, little-endian)
             self.cmd_signature.encode().ljust(15, b'\x00'),  # cmdSignature (15 bytes, null-terminated)
             self.cmd_company_sign.ljust(16, b'\x00'),  # cmdCompanySign (16 bytes, null-terminated)
-            command_sequence_number,  # cmdSeqNo (4 bytes, little-endian)
+            self.cmd_seq_no,  # cmdSeqNo (4 bytes, little-endian)
             self.cmd_term_id,  # cmdTermId (4 bytes, little-endian)
             self.cmd_card_id.encode().ljust(64, b'\x00'),  # cmdCardId (64 bytes, null-terminated)
             self.cmd_op_value,  # cmdOpValue (4 bytes, little-endian)
@@ -53,9 +68,9 @@ class DiscountRequest:
             self.cmd_sale_type,  # cmdSaleType (4 bytes, reservado)
             self.cmd_op_display_len   # cmdOpDisplayLen (4 bytes)
         )
-        
+        print(f"message: {message} ({type(message)})")
         # Adicionando tamanho da mensagem no início
-        message = struct.pack("<H", len(message)) + self.msg_block_size
+        message = struct.pack("<H", len(message)) + message
         return message
 
 @dataclass
@@ -82,7 +97,7 @@ class IntegrationService:
                 logger.warning(f"Conexão estabelecida com sucesso: {self.integration_service_ip}:{self.integration_service_port}")
 
                 # request.CmdSeqNo = 45
-                message = request.serialize(1)
+                message = request.serialize()
                 formatted_output = self.format_bytes_to_hex_string(message)
                 logger.warning(f"Enviando: \n{formatted_output}")
                 tcp_client.sendall(message)
@@ -134,7 +149,7 @@ class IntegrationService:
                     response_return.Message = "Recebida uma resposta vazia do servidor"
                     logger.warning("Recebida uma resposta vazia do servidor")
         except Exception as ex:
-            logger.error(f"Erro em CreateDiscount: {ex}")
+            logger.error(f"Erro em CreateDiscount: {ex} - {traceback.format_exc()}")
             response_return.Success = False
             response_return.Message = f"Erro: {ex}"
 
