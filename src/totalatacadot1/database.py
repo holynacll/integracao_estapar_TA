@@ -12,7 +12,7 @@ ORACLE_USER="CAIXA"
 ORACLE_PASSWORD="CAIXA"
 ORACLE_HOST="localhost"
 ORACLE_PORT="1521"
-ORACLE_SID="XEPDB1"
+ORACLE_SID="XE"
 
 # URL de conexão no formato correto para oracledb
 DATABASE_URL = f"oracle+oracledb://{ORACLE_USER}:{ORACLE_PASSWORD}@{ORACLE_HOST}:{ORACLE_PORT}/?service_name={ORACLE_SID}"
