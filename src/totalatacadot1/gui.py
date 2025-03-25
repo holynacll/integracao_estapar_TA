@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Total Atacado")
-        icon_path = str(get_assets_path() / "images" / "logo-total.png")
+        icon_path = str(get_assets_path() / "icons" / "icon")
         self.setWindowIcon(QIcon(icon_path))
         self.setGeometry(100, 100, 1024, 768)
 
