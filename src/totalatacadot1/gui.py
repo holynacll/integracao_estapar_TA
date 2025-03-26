@@ -21,9 +21,7 @@ from .config import get_assets_path
 
 # Estapar API
 IP="10.7.39.10"
-PORT="3000"
-os.environ["QT_QPA_PLATFORM"] = "xcb"
-
+PORT=3000
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -32,6 +30,14 @@ class MainWindow(QMainWindow):
         icon_path = str(get_assets_path() / "icons" / "icon")
         self.setWindowIcon(QIcon(icon_path))
         self.setGeometry(100, 100, 1024, 768)
+        
+        # Configura as flags da janela para remover o botão de minimizar
+        self.setWindowFlags(
+            Qt.WindowType.Window |  # Tipo básico de janela
+            Qt.WindowType.WindowCloseButtonHint |  # Garante o botão de fechar
+            Qt.WindowType.WindowMaximizeButtonHint |  # Botão de maximizar/redimensionar
+            Qt.WindowType.CustomizeWindowHint  # Permite personalização
+        )
 
         self.main_widget = MainWidget()
         self.setCentralWidget(self.main_widget)
@@ -48,7 +54,6 @@ class MainWidget(QWidget):
         self.background_image_path = str(get_assets_path() / "images" / "background-2.jpg")
         self.success_icon_path = str(get_assets_path() / "images" / "checked.png")
         self.error_icon_path = str(get_assets_path() / "images" / "warning.png")
-        self.pdv_pedido: PCPEDCECF = get_last_pdv_pedido()
         self.init_ui()
         
 
@@ -179,14 +184,27 @@ class MainWidget(QWidget):
 
         # # Instância do serviço
         service = IntegrationService(IP, PORT)
+        
+        # Consulta o último pedido do PDV
+        pdv_pedido = get_last_pdv_pedido()
+        if not pdv_pedido:
+            # Exibe uma caixa de mensagem personalizada para erro
+            error_box = CustomMessageBox(
+                "Erro",
+                "Não foi possível encontrar o ticket do cliente.\nPor favor, verifique o código e tente novamente.\n",
+                self.error_icon_path,
+                self
+            )
+            error_box.exec()
+            return
 
         # Criar uma requisição de exemplo
         request = DiscountCreationDto(
             card_barcode=ticket_code,
-            terminal_id=self.pdv_pedido.num_caixa,
-            num_cupom=self.pdv_pedido.num_cupom,
-            discount_datetime=resolve_date_to_timestamp(self.pdv_pedido.data, self.pdv_pedido.hora_cupom),
-            purchase_value=int(self.pdv_pedido.vl_total * 100),
+            terminal_id=pdv_pedido.num_caixa,
+            num_cupom=pdv_pedido.num_cupom,
+            discount_datetime=resolve_date_to_timestamp(pdv_pedido.data, pdv_pedido.hora_cupom),
+            purchase_value=int(pdv_pedido.vl_total * 100),
             fiscal_document="04558054000173",  # CNPJ válido
         )
 

@@ -93,6 +93,7 @@ class IntegrationService:
 
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_client:
+                tcp_client.settimeout(3)
                 tcp_client.connect((self.integration_service_ip, self.integration_service_port))
                 logger.warning(f"Conexão estabelecida com sucesso: {self.integration_service_ip}:{self.integration_service_port}")
 

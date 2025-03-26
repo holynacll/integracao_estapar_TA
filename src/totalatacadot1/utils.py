@@ -7,7 +7,7 @@ def resolve_date_to_timestamp(date_str, time_str) -> datetime:
     # hora_cupom = "19:58:47"
 
     # Converter a string de data para um objeto datetime
-    data_base = datetime.strptime(date_str, "%d/%m/%y %H:%M")
+    data_base = datetime.strptime(date_str, "%d/%m/%y")
 
     # Converter a string de hora para um objeto time
     hora_base = datetime.strptime(time_str, "%H:%M:%S").time()
