@@ -1,5 +1,5 @@
 from totalatacadot1.database import Base, engine
-from totalatacadot1.models import PDV, PDVItem
+from totalatacadot1.models import PCPEDCECF, PCPEDCECFItem
 
 def create_tables():
     # Criar tabelas se não existirem

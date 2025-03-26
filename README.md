@@ -46,22 +46,25 @@ docker volume create oracle_db_data
 
 docker run -d --name oracle_db \
 -p 1521:1521 -p 5500:5500 \
--e ORACLE_PWD=password \
+-e ORACLE_PWD=CAIXA \
 -v oracle_db_data:/opt/oracle/oradata \
 container-registry.oracle.com/database/express:21.3.0-xe
 
-docker exec -i oracle_db sqlplus sys/password@//localhost:1521/XEPDB1 as sysdba <<EOF
-CREATE USER total_atacado_user IDENTIFIED BY password;
-GRANT CREATE SESSION TO total_atacado_user;
-GRANT CREATE TABLE TO total_atacado_user;
-GRANT UNLIMITED TABLESPACE TO total_atacado_user;
-GRANT CREATE SEQUENCE TO total_atacado_user;
-GRANT CREATE PROCEDURE TO total_atacado_user;
+docker exec -i oracle_db sqlplus sys/CAIXA@//localhost:1521/XEPDB1 as sysdba <<EOF
+CREATE USER CAIXA IDENTIFIED BY CAIXA;
+GRANT CREATE SESSION TO CAIXA;
+GRANT CREATE TABLE TO CAIXA;
+GRANT UNLIMITED TABLESPACE TO CAIXA;
+GRANT CREATE SEQUENCE TO CAIXA;
+GRANT CREATE PROCEDURE TO CAIXA;
 EOF
 
-docker exec -i oracle_db sqlplus sys/password@//localhost:1521/XEPDB1 as sysdba <<EOF
-SELECT username FROM dba_users WHERE username = 'MEU_USUARIO';
+docker exec -i oracle_db sqlplus CAIXA/CAIXA@localhost:1521/XEPDB1 as sysdba <<EOF
+SELECT username FROM dba_users WHERE username = 'CAIXA';
 EOF
+
+ACCESS:
+docker exec -i oracle_db sqlplus CAIXA/CAIXA@localhost:1521/XEPDB1
 
 ## Application Structure
 

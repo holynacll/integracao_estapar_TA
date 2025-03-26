@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from totalatacadot1.database import engine, Base, SessionLocal
-from totalatacadot1.models import PDV, PDVItem
+from totalatacadot1.models import PCPEDCECF, PCPEDCECFItem
 from datetime import datetime
 
 # Criar as tabelas no banco de dados
@@ -8,19 +8,19 @@ def create_tables():
     Base.metadata.create_all(bind=engine)
     print("Tabelas criadas com sucesso!")
 
-# Inserir dados iniciais na tabela PDV
+# Inserir dados iniciais na tabela PCPEDCECF
 def populate_pdv():
     session = SessionLocal()
     try:
         # Verificar se já existem registros para evitar duplicação
-        existing_records = session.query(PDV).first()
+        existing_records = session.query(PCPEDCECF).first()
         if existing_records:
-            print("A tabela PDV já contém dados. Nenhuma inserção necessária.")
+            print("A tabela PCPEDCECF já contém dados. Nenhuma inserção necessária.")
             return
 
         # Inserindo registros iniciais
         pdv_data = [
-            PDV(
+            PCPEDCECF(
                 num_ped_ecf=11397,
                 num_caixa=303,
                 data=datetime.strptime("1/7/25 0:00", "%m/%d/%y %H:%M").strftime("%m/%d/%y %H:%M"),
@@ -28,7 +28,7 @@ def populate_pdv():
                 num_cupom=10429,
                 vl_total=12.69,
             ),
-            PDV(
+            PCPEDCECF(
                 num_ped_ecf=11398,
                 num_caixa=303,
                 data=datetime.strptime("1/7/25 0:00", "%m/%d/%y %H:%M").strftime("%m/%d/%y %H:%M"),
@@ -36,7 +36,7 @@ def populate_pdv():
                 num_cupom=10430,
                 vl_total=12.69,
             ),
-            PDV(
+            PCPEDCECF(
                 num_ped_ecf=11399,
                 num_caixa=303,
                 data=datetime.strptime("1/7/25 0:00", "%m/%d/%y %H:%M").strftime("%m/%d/%y %H:%M"),

@@ -11,7 +11,7 @@ from qt_material import apply_stylesheet
 from totalatacadot1.controller_integration_service import DiscountCreationDto, create_discount
 from totalatacadot1.custom_message_box import CustomMessageBox
 from totalatacadot1.integration_service import IntegrationService
-from totalatacadot1.models import PDV
+from totalatacadot1.models import PCPEDCECF
 from totalatacadot1.repository import get_last_pdv_pedido
 from totalatacadot1.utils import resolve_date_to_timestamp
 
@@ -22,7 +22,7 @@ from .config import get_assets_path
 # Estapar API
 IP="10.7.39.10"
 PORT="3000"
-# os.environ["QT_QPA_PLATFORM"] = "xcb"
+os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 
 class MainWindow(QMainWindow):
@@ -48,7 +48,7 @@ class MainWidget(QWidget):
         self.background_image_path = str(get_assets_path() / "images" / "background-2.jpg")
         self.success_icon_path = str(get_assets_path() / "images" / "checked.png")
         self.error_icon_path = str(get_assets_path() / "images" / "warning.png")
-        self.pdv_pedido: PDV = get_last_pdv_pedido()
+        self.pdv_pedido: PCPEDCECF = get_last_pdv_pedido()
         self.init_ui()
         
 
@@ -195,13 +195,13 @@ class MainWidget(QWidget):
 
         # Exibir o resultado
         print(f"Success: {result.Success}, Message: {result.Message}")
-
-        if ticket_code == "some_value":
+        
+        if result.Success:
             # Exibe uma caixa de mensagem personalizada para sucesso
             success_box = CustomMessageBox(
-                "Sucesso", 
-                "Código validado com sucesso!\n", 
-                self.success_icon_path, 
+                "Sucesso",
+                f"Código validado com sucesso!\nEstapar API response: {result.Message}",
+                self.success_icon_path,
                 self
             )
             success_box.exec()
@@ -209,9 +209,9 @@ class MainWidget(QWidget):
         else:
             # Exibe uma caixa de mensagem personalizada para erro
             error_box = CustomMessageBox(
-                "Erro", 
-                "Código inválido!\nPor favor, verifique o código e tente novamente.\n", 
-                self.error_icon_path, 
+                "Erro",
+                f"Código inválido!\nEstapar API response: {result.Message}",
+                self.error_icon_path,
                 self
             )
             error_box.exec()

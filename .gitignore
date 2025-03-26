@@ -61,3 +61,8 @@ var/
 
 # Briefcase log files
 logs/
+
+
+# Oracle instant client
+instantclient_19_26/
+META-INF
