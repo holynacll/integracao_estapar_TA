@@ -1,19 +1,27 @@
 import os
 import platform
 from contextlib import contextmanager
+import shutil
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
 import oracledb
 
 from totalatacadot1.config import get_project_root, get_orcl_instant_client_path, get_orcl_instant_client_path_zipped
 
-if platform.system() == "Windows":
-    if not get_orcl_instant_client_path().exists():
-        orcl_orcl_instant_client_zip = get_orcl_instant_client_path_zipped()
-        if orcl_orcl_instant_client_zip.exists():
-            os.system(f"unzip {orcl_orcl_instant_client_zip} -d {get_project_root()}")
-    oracle_client_path = get_orcl_instant_client_path()
-    oracledb.init_oracle_client(lib_dir=str(oracle_client_path))
+
+def setup_oracle_client():
+    if platform.system() == "Windows":
+        oracle_client_path = get_orcl_instant_client_path()
+
+        if not oracle_client_path.exists():
+            orcl_instant_client_zip = get_orcl_instant_client_path_zipped()
+            if orcl_instant_client_zip.exists():
+                shutil.unpack_archive(str(orcl_instant_client_zip), str(get_project_root()))
+
+        if oracle_client_path.exists():  # Verifica novamente após extração
+            oracledb.init_oracle_client(lib_dir=str(oracle_client_path))
+
+setup_oracle_client()
 
 # from dotenv import load_dotenv
 
@@ -51,3 +59,5 @@ def get_db():
 
 # Context manager para usar em blocos 'with'
 db_context = contextmanager(get_db)
+
+
