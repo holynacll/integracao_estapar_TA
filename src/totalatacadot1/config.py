@@ -1,7 +1,7 @@
 from pathlib import Path
 
 def get_project_root() -> Path:
-    return Path(__file__).parent.parent.parent
+    return Path(__file__).parent
 
 
 def get_assets_path() -> Path:

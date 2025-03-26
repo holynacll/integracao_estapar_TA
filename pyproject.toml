@@ -29,7 +29,7 @@ formal_name = "Total Atacado T1"
 description = "A application for handling integration between total atacado and estapar"
 long_description = """More details about the app should go here.
 """
-icon = "assets/icons/icon"
+icon = "src/totalatacadot1/assets/icons/icon"
 sources = [
     "src/totalatacadot1",
 ]
