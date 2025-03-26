@@ -22,7 +22,7 @@ from .config import get_assets_path
 # Estapar API
 IP="10.7.39.10"
 PORT="3000"
-os.environ["QT_QPA_PLATFORM"] = "xcb"
+# os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 
 class MainWindow(QMainWindow):
