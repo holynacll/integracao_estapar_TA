@@ -1,3 +1,5 @@
 from pathlib import Path
 
-print(Path(__file__).parent)
+from loguru import logger
+
+logger.info(Path(__file__).parent)

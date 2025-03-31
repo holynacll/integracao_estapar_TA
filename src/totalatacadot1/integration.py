@@ -17,13 +17,14 @@ RSP_VALIDATION = 0x00010010  # Tipo de resposta para validação
 INTEGRATION_SERVICE_IP = "10.7.39.10"
 INTEGRATION_SERVICE_PORT = 3000
 
+
 # Estrutura das mensagens
 class DiscountRequest:
     def __init__(self, card_id, term_id, value):
         self.CmdType = CMD_VALIDATION  # Tipo de comando (validação)
-        self.CmdTermId = term_id # ID do terminal PDV
-        self.CmdOpValue = int(value * 100) # Valor da compra em centavos (R$ 100,00)
-        self.CmdCardId = card_id # Código de barras do cartão
+        self.CmdTermId = term_id  # ID do terminal PDV
+        self.CmdOpValue = int(value * 100)  # Valor da compra em centavos (R$ 100,00)
+        self.CmdCardId = card_id  # Código de barras do cartão
         self.CmdSignature = "04558054000173"  # CNPJ do estabelecimento
         self.CmdOpSeqNo = 45  # Número sequencial da operação
         self.CmdRUF_0 = 0xFFFFFFFF  # Reservado para uso futuro
@@ -40,17 +41,21 @@ class DiscountRequest:
             0,  # cmdFiller (2 bytes)
             0x0000000F,  # cmdType (4 bytes, little-endian)
             int(time.time()),  # cmdTmt (4 bytes, little-endian)
-            self.CmdSignature.encode().ljust(15, b'\x00'),  # cmdSignature (15 bytes, null-terminated)
-            b"ESTAPAR".ljust(16, b'\x00'),  # cmdCompanySign (16 bytes, null-terminated)
+            self.CmdSignature.encode().ljust(
+                15, b"\x00"
+            ),  # cmdSignature (15 bytes, null-terminated)
+            b"ESTAPAR".ljust(16, b"\x00"),  # cmdCompanySign (16 bytes, null-terminated)
             self.CmdTermId,  # cmdTermId (4 bytes, little-endian)
             self.CmdOpSeqNo,  # cmdSeqNo (4 bytes, little-endian)
-            self.CmdCardId.encode().ljust(64, b'\x00'),  # cmdCardId (64 bytes, null-terminated)
+            self.CmdCardId.encode().ljust(
+                64, b"\x00"
+            ),  # cmdCardId (64 bytes, null-terminated)
             0,  # cmdOpValue (4 bytes, little-endian)
             0,  # cmdOpSeqNo (4 bytes, little-endian)
             0xFFFFFFFF,  # cmdRUF_0 (4 bytes, reservado)
             0xFFFFFFFF,  # cmdRUF_1 (4 bytes, reservado)
             0xFFFFFFFF,  # cmdSaleType (4 bytes, reservado)
-            0   # cmdOpDisplayLen (4 bytes)
+            0,  # cmdOpDisplayLen (4 bytes)
         )
 
         return message
@@ -70,7 +75,7 @@ class DiscountResponse:
         logger.info(f"Tamanho da resposta: {len(data)} bytes")
 
         # Extrai o campo rspStatus (bytes 16 a 20)
-        self.RspStatus = struct.unpack('<I', data[16:20])[0]  # Status da resposta
+        self.RspStatus = struct.unpack("<I", data[16:20])[0]  # Status da resposta
         logger.info(f"Status da resposta: 0x{self.RspStatus:08X}")
 
         # Extrai o texto do status
@@ -130,6 +135,6 @@ if __name__ == "__main__":
     response = send_discount_request(request)
 
     if response:
-        print(f"Status: {response.RspStatusTxt}")
+        logger.info(f"Status: {response.RspStatusTxt}")
     else:
-        print("Falha na comunicação com o Integration Service.")
+        logger.info("Falha na comunicação com o Integration Service.")

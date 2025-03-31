@@ -3,6 +3,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+from loguru import logger
 import pytest
 
 
@@ -25,10 +26,11 @@ def run_tests():
             # Overwrite the cache directory to somewhere writable
             "-o",
             f"cache_dir={tempfile.gettempdir()}/.pytest_cache",
-        ] + args
+        ]
+        + args
     )
 
-    print(f">>>>>>>>>> EXIT {returncode} <<<<<<<<<<")
+    logger.info(f">>>>>>>>>> EXIT {returncode} <<<<<<<<<<")
 
 
 if __name__ == "__main__":

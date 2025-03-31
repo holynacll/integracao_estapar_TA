@@ -1,14 +1,30 @@
 import os
 import sys
+
+from loguru import logger
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, Slot
 from PySide6.QtWidgets import (
-    QApplication, QLabel, QPushButton, QWidget, QVBoxLayout, QMainWindow, QLineEdit, QMessageBox, QSpacerItem, QSizePolicy, QFrame, QGraphicsOpacityEffect
+    QApplication,
+    QLabel,
+    QPushButton,
+    QWidget,
+    QVBoxLayout,
+    QMainWindow,
+    QLineEdit,
+    QMessageBox,
+    QSpacerItem,
+    QSizePolicy,
+    QFrame,
+    QGraphicsOpacityEffect,
 )
 from PySide6.QtGui import QIcon, QFont, QPixmap, QPainter, QBrush
 from qt_material import apply_stylesheet
 # from dotenv import load_dotenv
 
-from totalatacadot1.controller_integration_service import DiscountCreationDto, create_discount
+from totalatacadot1.controller_integration_service import (
+    DiscountCreationDto,
+    create_discount,
+)
 from totalatacadot1.custom_message_box import CustomMessageBox
 from totalatacadot1.integration_service import IntegrationService
 from totalatacadot1.models import PCPEDCECF
@@ -41,7 +57,7 @@ class MainWindow(QMainWindow):
 
         self.main_widget = MainWidget()
         self.setCentralWidget(self.main_widget)
-    
+
     def closeEvent(self, event):
         # Override the close event to hide the window instead of closing it
         event.ignore()
@@ -51,13 +67,14 @@ class MainWindow(QMainWindow):
 class MainWidget(QWidget):
     def __init__(self):
         super().__init__()
-        self.background_image_path = str(get_assets_path() / "images" / "background-2.jpg")
+        self.background_image_path = str(
+            get_assets_path() / "images" / "background-2.jpg"
+        )
         self.success_icon_path = str(get_assets_path() / "images" / "checked.png")
         self.error_icon_path = str(get_assets_path() / "images" / "warning.png")
         self.init_ui()
-        
 
-    def init_ui(self):        
+    def init_ui(self):
         # Carrega a imagem original
         pixmap = QPixmap(self.background_image_path)
 
@@ -67,7 +84,9 @@ class MainWidget(QWidget):
 
         # Aplicando a opacidade na imagem
         painter = QPainter(transparent_pixmap)
-        painter.setOpacity(0.2)  # Ajuste a opacidade aqui (1.0 = sem transparência, 0.0 = totalmente transparente)
+        painter.setOpacity(
+            0.2
+        )  # Ajuste a opacidade aqui (1.0 = sem transparência, 0.0 = totalmente transparente)
         painter.drawPixmap(0, 0, pixmap)
         painter.end()
 
@@ -88,7 +107,7 @@ class MainWidget(QWidget):
         self.title.setFont(QFont("Arial", 36, QFont.Weight.Bold))
         self.title.setStyleSheet("color: #222;")
 
-        # Input Label        
+        # Input Label
         self.label = QLabel("Ticket do Cliente:")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
@@ -141,8 +160,8 @@ class MainWidget(QWidget):
                 background-color: #003d80;
             }
         """)
-        
-        # Input Label        
+
+        # Input Label
         self.footer_label = QLabel("@ 2025 Total Atacado")
         self.footer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.footer_label.setFont(QFont("Arial", 14, QFont.Weight.DemiBold))
@@ -153,17 +172,25 @@ class MainWidget(QWidget):
         main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(self.title)
         # Adiciona um espaço para empurrar os elementos para baixo
-        main_layout.addSpacerItem(QSpacerItem(20, 50, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+        main_layout.addSpacerItem(
+            QSpacerItem(
+                20, 50, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
+            )
+        )
         main_layout.addWidget(self.label)
         main_layout.addWidget(self.edit)
         main_layout.addWidget(self.button)
-        main_layout.addSpacerItem(QSpacerItem(20, 50, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+        main_layout.addSpacerItem(
+            QSpacerItem(
+                20, 50, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
+            )
+        )
         main_layout.addWidget(self.footer_label)
 
         self.setLayout(main_layout)
 
     def resizeEvent(self, event):
-        """ Redimensiona a imagem de fundo quando a janela for redimensionada """
+        """Redimensiona a imagem de fundo quando a janela for redimensionada"""
         self.background_label.resize(self.size())
 
     @Slot()
@@ -174,10 +201,10 @@ class MainWidget(QWidget):
         if not ticket_code:
             # Exibe uma caixa de mensagem personalizada para erro
             error_box = CustomMessageBox(
-                "Erro", 
-                "Código inválido!\nPor favor, verifique o código e tente novamente.\n", 
-                self.error_icon_path, 
-                self
+                "Erro",
+                "Código inválido!\nPor favor, verifique o código e tente novamente.\n",
+                self.error_icon_path,
+                self,
             )
             error_box.exec()
             return
@@ -212,15 +239,15 @@ class MainWidget(QWidget):
         result = create_discount(request, service)
 
         # Exibir o resultado
-        print(f"Success: {result.Success}, Message: {result.Message}")
-        
+        logger.info(f"Success: {result.Success}, Message: {result.Message}")
+
         if result.Success:
             # Exibe uma caixa de mensagem personalizada para sucesso
             success_box = CustomMessageBox(
                 "Sucesso",
                 f"Código validado com sucesso!\nEstapar API response: {result.Message}",
                 self.success_icon_path,
-                self
+                self,
             )
             success_box.exec()
             self.edit.clear()
@@ -230,6 +257,6 @@ class MainWidget(QWidget):
                 "Erro",
                 f"Código inválido!\nEstapar API response: {result.Message}",
                 self.error_icon_path,
-                self
+                self,
             )
             error_box.exec()

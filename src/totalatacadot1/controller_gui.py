@@ -23,7 +23,7 @@ class AppController(QObject):
         self.request_shutdown.connect(self._shutdown)
         
         self.setup_tray_icon()
-        
+
     def setup_tray_icon(self):
         """Configura o ícone na bandeja do sistema de forma thread-safe."""
         self.tray_icon = QSystemTrayIcon(self.app)
@@ -90,7 +90,7 @@ class AppController(QObject):
     def is_gui_open(self) -> bool:
         """Verifica se a GUI está aberta."""
         return self.window.isVisible()
-    
+
     def run_event_loop(self):
         """Executa o loop de eventos."""
         sys.exit(self.app.exec())

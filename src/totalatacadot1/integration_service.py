@@ -12,78 +12,89 @@ logger = logging.getLogger(__name__)
 
 
 class CommandType(Enum):
-    CONSULT = 0x0000000F # 15
-    VALIDATION = 0x00000010 # 16
+    CONSULT = 0x0000000F  # 15
+    VALIDATION = 0x00000010  # 16
 
 
 @dataclass
 class DiscountRequest:
-    cmd_term_id: int # Numero do terminal do requisitante (NUM_CAIXA)
-    cmd_card_id: str # Código de barras do cartão
-    cmd_op_value: int # Valor da compra em centavos
-    cmd_op_seq_no: int # Número sequencial do cupom fiscal
-    cmd_tmt: int # timestamp da requisição
-    msg_block_size: int = 0 # tamanho do bloco da mensagem
-    cmd_filler: int = 0 # Reservado
+    cmd_term_id: int  # Numero do terminal do requisitante (NUM_CAIXA)
+    cmd_card_id: str  # Código de barras do cartão
+    cmd_op_value: int  # Valor da compra em centavos
+    cmd_op_seq_no: int  # Número sequencial do cupom fiscal
+    cmd_tmt: int  # timestamp da requisição
+    msg_block_size: int = 0  # tamanho do bloco da mensagem
+    cmd_filler: int = 0  # Reservado
     cmd_type: CommandType = CommandType.CONSULT
-    cmd_signature: str = "04558054000173" # CNPJ da empresa (null-terminated)
-    cmd_company_sign: bytes = b"ESTAPAR" # assinatura da aplicação (null-terminated)
+    cmd_signature: str = "04558054000173"  # CNPJ da empresa (null-terminated)
+    cmd_company_sign: bytes = b"ESTAPAR"  # assinatura da aplicação (null-terminated)
     cmd_seq_no: int = 1  # número sequencial da operação
-    cmd_ruf_0: int = 0xFFFFFFFF # Reservado
-    cmd_ruf_1: int = 0xFFFFFFFF # Reservado
-    cmd_sale_type: int = 0xFFFFFFFF # Tipo de venda (reservado)
-    cmd_op_display_len: int = 0 # Número de caracteres do visor do operador
-    
-    
+    cmd_ruf_0: int = 0xFFFFFFFF  # Reservado
+    cmd_ruf_1: int = 0xFFFFFFFF  # Reservado
+    cmd_sale_type: int = 0xFFFFFFFF  # Tipo de venda (reservado)
+    cmd_op_display_len: int = 0  # Número de caracteres do visor do operador
+
     def serialize(self):
         """Serializa a requisição em bytes, conforme o manual."""
-        print(f"cmd_filler: {self.cmd_filler} ({type(self.cmd_filler)})")
-        print(f"cmd_type: {self.cmd_type.value} ({type(self.cmd_type.value)})")
-        print(f"cmd_tmt: {self.cmd_tmt} ({type(self.cmd_tmt)})")
-        print(f"cmd_signature: {self.cmd_signature} ({type(self.cmd_signature)})")
-        print(f"cmd_company_sign: {self.cmd_company_sign} ({type(self.cmd_company_sign)})")
-        print(f"cmd_seq_no: {self.cmd_seq_no} ({type(self.cmd_seq_no)})")
-        print(f"cmd_term_id: {self.cmd_term_id} ({type(self.cmd_term_id)})")
-        print(f"cmd_card_id: {self.cmd_card_id} ({type(self.cmd_card_id)})")
-        print(f"cmd_op_value: {self.cmd_op_value} ({type(self.cmd_op_value)})")
-        print(f"cmd_op_seq_no: {self.cmd_op_seq_no} ({type(self.cmd_op_seq_no)})")
-        print(f"cmd_ruf_0: {self.cmd_ruf_0} ({type(self.cmd_ruf_0)})")
-        print(f"cmd_ruf_1: {self.cmd_ruf_1} ({type(self.cmd_ruf_1)})")
-        print(f"cmd_sale_type: {self.cmd_sale_type} ({type(self.cmd_sale_type)})")
-        print(f"cmd_op_display_len: {self.cmd_op_display_len} ({type(self.cmd_op_display_len)})")
+        logger.info(f"cmd_filler: {self.cmd_filler} ({type(self.cmd_filler)})")
+        logger.info(f"cmd_type: {self.cmd_type.value} ({type(self.cmd_type.value)})")
+        logger.info(f"cmd_tmt: {self.cmd_tmt} ({type(self.cmd_tmt)})")
+        logger.info(f"cmd_signature: {self.cmd_signature} ({type(self.cmd_signature)})")
+        logger.info(
+            f"cmd_company_sign: {self.cmd_company_sign} ({type(self.cmd_company_sign)})"
+        )
+        logger.info(f"cmd_seq_no: {self.cmd_seq_no} ({type(self.cmd_seq_no)})")
+        logger.info(f"cmd_term_id: {self.cmd_term_id} ({type(self.cmd_term_id)})")
+        logger.info(f"cmd_card_id: {self.cmd_card_id} ({type(self.cmd_card_id)})")
+        logger.info(f"cmd_op_value: {self.cmd_op_value} ({type(self.cmd_op_value)})")
+        logger.info(f"cmd_op_seq_no: {self.cmd_op_seq_no} ({type(self.cmd_op_seq_no)})")
+        logger.info(f"cmd_ruf_0: {self.cmd_ruf_0} ({type(self.cmd_ruf_0)})")
+        logger.info(f"cmd_ruf_1: {self.cmd_ruf_1} ({type(self.cmd_ruf_1)})")
+        logger.info(f"cmd_sale_type: {self.cmd_sale_type} ({type(self.cmd_sale_type)})")
+        logger.info(
+            f"cmd_op_display_len: {self.cmd_op_display_len} ({type(self.cmd_op_display_len)})"
+        )
         message = struct.pack(
             "<HHI15s16sII64sIIIIII",  # Novo formato corrigido
             self.cmd_filler,  # cmdFiller (2 bytes)
             self.cmd_type.value,  # cmdType (4 bytes, little-endian)
             self.cmd_tmt,  # cmdTmt (4 bytes, little-endian)
-            self.cmd_signature.encode().ljust(15, b'\x00'),  # cmdSignature (15 bytes, null-terminated)
-            self.cmd_company_sign.ljust(16, b'\x00'),  # cmdCompanySign (16 bytes, null-terminated)
+            self.cmd_signature.encode().ljust(
+                15, b"\x00"
+            ),  # cmdSignature (15 bytes, null-terminated)
+            self.cmd_company_sign.ljust(
+                16, b"\x00"
+            ),  # cmdCompanySign (16 bytes, null-terminated)
             self.cmd_seq_no,  # cmdSeqNo (4 bytes, little-endian)
             self.cmd_term_id,  # cmdTermId (4 bytes, little-endian)
-            self.cmd_card_id.encode().ljust(64, b'\x00'),  # cmdCardId (64 bytes, null-terminated)
+            self.cmd_card_id.encode().ljust(
+                64, b"\x00"
+            ),  # cmdCardId (64 bytes, null-terminated)
             self.cmd_op_value,  # cmdOpValue (4 bytes, little-endian)
             self.cmd_op_seq_no,  # cmdOpSeqNo (4 bytes, little-endian)
             self.cmd_ruf_0,  # cmdRUF_0 (4 bytes, reservado)
             self.cmd_ruf_1,  # cmdRUF_1 (4 bytes, reservado)
             self.cmd_sale_type,  # cmdSaleType (4 bytes, reservado)
-            self.cmd_op_display_len   # cmdOpDisplayLen (4 bytes)
+            self.cmd_op_display_len,  # cmdOpDisplayLen (4 bytes)
         )
-        print(f"message: {message} ({type(message)})")
+        logger.info(f"message: {message} ({type(message)})")
         # Adicionando tamanho da mensagem no início
         message = struct.pack("<H", len(message)) + message
         return message
+
 
 @dataclass
 class ResponseReturn:
     Success: bool = False
     Message: str = ""
 
+
 class IntegrationService:
     def __init__(self, ip, port):
         self.integration_service_ip = ip
         self.integration_service_port = port
         self.current_number = 0
-    
+
     def get_next_number(self) -> int:
         self.current_number += 1
         return self.current_number
@@ -119,8 +130,12 @@ class IntegrationService:
                         logger.warning("Mensagem recebida -->>> Cartao ja validado")
                     elif "Valor de compra insuficiente para validacao" in response:
                         response_return.Success = False
-                        response_return.Message = "insufficient purchase value for validation"
-                        logger.warning("Mensagem recebida -->>> Valor de compra insuficiente para validacao")
+                        response_return.Message = (
+                            "insufficient purchase value for validation"
+                        )
+                        logger.warning(
+                            "Mensagem recebida -->>> Valor de compra insuficiente para validacao"
+                        )
                     elif "Comando invalido" in response:
                         response_return.Success = False
                         response_return.Message = "invalid command"
@@ -132,15 +147,21 @@ class IntegrationService:
                     elif "Terminal nao cadastrado" in response:
                         response_return.Success = False
                         response_return.Message = "terminal not registered"
-                        logger.warning("Mensagem recebida -->>> Terminal nao cadastrado")
+                        logger.warning(
+                            "Mensagem recebida -->>> Terminal nao cadastrado"
+                        )
                     elif "Tempo de desconto excedido" in response:
                         response_return.Success = False
                         response_return.Message = "discount time exceeded"
-                        logger.warning("Mensagem recebida -->>> Tempo de desconto excedido")
+                        logger.warning(
+                            "Mensagem recebida -->>> Tempo de desconto excedido"
+                        )
                     elif "Tipo de cartao invalido" in response:
                         response_return.Success = False
                         response_return.Message = "invalid card type"
-                        logger.warning("Mensagem recebida -->>> Tipo de cartao invalido")
+                        logger.warning(
+                            "Mensagem recebida -->>> Tipo de cartao invalido"
+                        )
                     else:
                         response_return.Success = True
                         response_return.Message = response
@@ -156,15 +177,14 @@ class IntegrationService:
 
         return response_return
 
-
     def read_response(self, tcp_client):
-        response = b''
+        response = b""
         while True:
             data = tcp_client.recv(2048)
             if not data:
                 break
             response += data
-        return response.decode('ascii').rstrip('\x00')
+        return response.decode("ascii").rstrip("\x00")
 
     def format_bytes_to_hex_string(self, bytes_data):
         hex_string = ""
@@ -175,9 +195,10 @@ class IntegrationService:
             hex_string += "  "
             for j in range(i, min(i + 16, len(bytes_data))):
                 char = chr(bytes_data[j])
-                hex_string += char if char.isprintable() else '.'
+                hex_string += char if char.isprintable() else "."
             hex_string += "\n"
         return hex_string
+
 
 # Exemplo de uso
 if __name__ == "__main__":
@@ -191,4 +212,4 @@ if __name__ == "__main__":
         cmd_op_value=VLTOTAL,
     )
     response = service.create_discount(request)
-    print(f"Success: {response.Success}, Message: {response.Message}")
+    logger.info(f"Success: {response.Success}, Message: {response.Message}")

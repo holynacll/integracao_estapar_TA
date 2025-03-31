@@ -2,22 +2,28 @@ from dataclasses import dataclass
 from datetime import datetime
 import logging
 
-from totalatacadot1.integration_service import DiscountRequest, IntegrationService, ResponseReturn
+from totalatacadot1.integration_service import (
+    DiscountRequest,
+    IntegrationService,
+    ResponseReturn,
+)
 
 # Configuração do logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 # Classes de modelo (DTOs)
 @dataclass
 class DiscountCreationDto:
     """DTO para criação de desconto."""
-    purchase_value: float # vltotal
-    terminal_id: int # numcaixa
-    num_cupom: int # numcupom
+
+    purchase_value: float  # vltotal
+    terminal_id: int  # numcaixa
+    num_cupom: int  # numcupom
     discount_datetime: datetime
-    fiscal_document: str # CNPJ
-    card_barcode: str = '' # código que será digitado/scaneado no terminal
+    fiscal_document: str  # CNPJ
+    card_barcode: str = ""  # código que será digitado/scaneado no terminal
 
     # Validação do valor da compra
     def validate_purchase_value(self):
@@ -66,7 +72,9 @@ def validar_cnpj(cnpj: str) -> bool:
 
 
 # Função principal para criar desconto
-def create_discount(request: DiscountCreationDto, service: IntegrationService) -> ResponseReturn:
+def create_discount(
+    request: DiscountCreationDto, service: IntegrationService
+) -> ResponseReturn:
     try:
         # Validar o DTO
         request.validate_purchase_value()
@@ -103,7 +111,7 @@ def main():
     pass
     # Instância do serviço
     # service = IntegrationService("10.7.39.10", 3000)
-    
+
     # date = "1/7/25 0:00"
     # hora_cupom = "19:58:47"
     # date_time_cupom = datetime.strptime()
@@ -121,7 +129,8 @@ def main():
     # result = create_discount(request, service)
 
     # # Exibir o resultado
-    # print(f"Success: {result.Success}, Message: {result.Message}")
+    # logger.info(f"Success: {result.Success}, Message: {result.Message}")
+
 
 # Exemplo de uso
 if __name__ == "__main__":
