@@ -3,7 +3,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-from loguru import logger
 import pytest
 
 
@@ -30,7 +29,7 @@ def run_tests():
         + args
     )
 
-    logger.info(f">>>>>>>>>> EXIT {returncode} <<<<<<<<<<")
+    print(f">>>>>>>>>> EXIT {returncode} <<<<<<<<<<")
 
 
 if __name__ == "__main__":
