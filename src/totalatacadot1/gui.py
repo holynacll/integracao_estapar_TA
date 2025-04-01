@@ -39,8 +39,6 @@ from .config import get_assets_path
 # Estapar API
 IP="10.7.39.10"
 PORT=3000
-IP="127.0.0.1"
-PORT=33535
 
 class MainWindow(QMainWindow):
     def __init__(self):
