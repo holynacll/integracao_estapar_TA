@@ -6,16 +6,16 @@ from pathlib import Path
 from loguru import logger
 
 from time import sleep
-from totalatacadot1.dml_tables import create_tables
 from totalatacadot1.controller_gui import AppController
-from totalatacadot1.models import PCPEDCECF, PCPEDCECFItem
+from totalatacadot1.database import init_db
+from totalatacadot1.models import PCPEDCECF, ControlPDV
 from totalatacadot1.repository import (
     create_pdv_control_item,
     get_last_pdv_pedido,
     get_pdv_control_item_by_num_ped_ecf,
 )
 
-# os.environ["QT_QPA_PLATFORM"] = "xcb"
+os.environ["QT_QPA_PLATFORM"] = "xcb"
 # os.environ["QT_QPA_PLATFORM"] = "windows"  # or "direct2d"
 
 
@@ -34,7 +34,7 @@ def background_task(controller: AppController):
             last_pdv_pedido.num_ped_ecf
         )
         if pdv_control_item is None:
-            pdv_control_item: PCPEDCECFItem = create_pdv_control_item(
+            pdv_control_item: ControlPDV = create_pdv_control_item(
                 last_pdv_pedido.num_ped_ecf
             )
             """Solicita a validação do ticket."""
@@ -48,11 +48,11 @@ def main():
     log_file = log_dir / "app.log"
     logger.add(log_file, rotation="1 day", retention="7 days")
     logger.add(sys.stdout, format="{time} {level} {message}", level="INFO")  
+    logger.info("Iniciando o aplicativo...")
+    
+    # init db
+    init_db()
 
-    logger.info("Log funcionando!")
-    logger.info("TESTEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE = Iniciando o aplicativo...")
-
-    create_tables()
     controller = AppController()
 
     # Inicialmente esconder a janela principal, mas manter o ícone na bandeja

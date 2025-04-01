@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import sys
 
@@ -14,6 +15,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QSpacerItem,
     QSizePolicy,
+    QComboBox,
     QFrame,
     QGraphicsOpacityEffect,
 )
@@ -21,14 +23,13 @@ from PySide6.QtGui import QIcon, QFont, QPixmap, QPainter, QBrush
 from qt_material import apply_stylesheet
 # from dotenv import load_dotenv
 
-from totalatacadot1.controller_integration_service import (
-    DiscountCreationDto,
-    create_discount,
-)
+from totalatacadot1.enums import CommandType
+from totalatacadot1.estapar_integration_service import EstaparIntegrationService
 from totalatacadot1.custom_message_box import CustomMessageBox
-from totalatacadot1.integration_service import IntegrationService
+from totalatacadot1.estapar_integration_service import EstaparIntegrationService
 from totalatacadot1.models import PCPEDCECF
 from totalatacadot1.repository import get_last_pdv_pedido
+from totalatacadot1.schemas import DiscountRequest
 from totalatacadot1.utils import resolve_date_to_timestamp
 
 from .config import get_assets_path
@@ -38,6 +39,8 @@ from .config import get_assets_path
 # Estapar API
 IP="10.7.39.10"
 PORT=3000
+IP="127.0.0.1"
+PORT=33535
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -106,6 +109,36 @@ class MainWidget(QWidget):
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title.setFont(QFont("Arial", 36, QFont.Weight.Bold))
         self.title.setStyleSheet("color: #222;")
+        
+        # Adicionando o ComboBox para seleção do tipo de operação
+        self.operation_label = QLabel("Tipo de Operação:")
+        self.operation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.operation_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        self.operation_label.setStyleSheet("""color: #444;""")
+
+        self.operation_combo = QComboBox()
+        self.operation_combo.addItem("Consulta", CommandType.CONSULT)
+        self.operation_combo.addItem("Validação", CommandType.VALIDATION)
+        self.operation_combo.setFixedHeight(50)
+        self.operation_combo.setStyleSheet("""
+            QComboBox {
+                font-size: 16px;
+                padding: 10px;
+                border: 2px solid #bbb;
+                border-radius: 10px;
+                background-color: white;
+            }
+
+            QComboBox:focus {
+                border: 2px solid #007BFF;
+                background-color: #F0F8FF;
+                outline: none;
+            }
+
+            QComboBox:hover {
+                border: 2px solid #0056b3;
+            }
+        """)
 
         # Input Label
         self.label = QLabel("Ticket do Cliente:")
@@ -139,7 +172,7 @@ class MainWidget(QWidget):
 
         self.button = QPushButton("Validar")
         self.button.setFixedHeight(50)
-        self.button.clicked.connect(self.validate_ticket)
+        self.button.clicked.connect(self.process_ticket)
         self.button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.button.setStyleSheet("""
             QPushButton {
@@ -177,6 +210,15 @@ class MainWidget(QWidget):
                 20, 50, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
             )
         )
+        
+        main_layout.addWidget(self.operation_label)
+        main_layout.addWidget(self.operation_combo)
+        main_layout.addSpacerItem(
+            QSpacerItem(
+                20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
+            )
+        )
+
         main_layout.addWidget(self.label)
         main_layout.addWidget(self.edit)
         main_layout.addWidget(self.button)
@@ -194,68 +236,87 @@ class MainWidget(QWidget):
         self.background_label.resize(self.size())
 
     @Slot()
-    def validate_ticket(self):
-        """Verifica o ticket para validação e exibe mensagem de sucesso ou erro"""
-        ticket_code = self.edit.text().strip()
+    def process_ticket(self):
+        """Processa o ticket conforme a operação selecionada (consulta ou validação)"""
+        try:
+            logger.debug("Iniciando processamento de ticket")
+            ticket_code = self.edit.text().strip()
+            operation_type = self.operation_combo.currentData()
+            logger.debug(f"Ticket recebido: {ticket_code}")
+            logger.debug(f"Tipo de operação: {operation_type}")
 
-        if not ticket_code:
-            # Exibe uma caixa de mensagem personalizada para erro
-            error_box = CustomMessageBox(
-                "Erro",
-                "Código inválido!\nPor favor, verifique o código e tente novamente.\n",
-                self.error_icon_path,
-                self,
+            if not ticket_code:
+                logger.warning("Ticket vazio recebido")
+                error_box = CustomMessageBox(
+                    "Erro",
+                    "Código inválido!\nPor favor, verifique o código e tente novamente.\n",
+                    self.error_icon_path,
+                    self,
+                )
+                error_box.exec()
+                return
+
+            logger.debug("Consultando último pedido PDV")
+            pdv_pedido = get_last_pdv_pedido()
+            
+            if not pdv_pedido:
+                logger.error("Nenhum pedido PDV encontrado")
+                error_box = CustomMessageBox(
+                    "Erro",
+                    "Não foi possível encontrar o ticket do cliente.\nPor favor, verifique o código e tente novamente.\n",
+                    self.error_icon_path,
+                    self
+                )
+                error_box.exec()
+                return
+
+            logger.debug("Criando requisição")
+            discount_request = DiscountRequest(
+                cmd_card_id=ticket_code,
+                cmd_term_id=pdv_pedido.num_caixa,
+                cmd_op_value=int(pdv_pedido.vl_total*100),
+                cmd_type=operation_type,
             )
-            error_box.exec()
-            return
+            
+            logger.debug("Criando instancia do servico de integração com a estapar")
+            service = EstaparIntegrationService(IP, PORT)
 
-        # # Instância do serviço
-        service = IntegrationService(IP, PORT)
-        
-        # Consulta o último pedido do PDV
-        pdv_pedido = get_last_pdv_pedido()
-        if not pdv_pedido:
-            # Exibe uma caixa de mensagem personalizada para erro
+            logger.debug("Enviando requisição para API")
+            result = service.create_discount(discount_request)
+            logger.debug(f"Resposta da API: {result}")
+            if result.success:
+                success_title = "Validação Realizada"
+                msg = f"Operação realizada com sucesso!\nEstapar API response: {result.message}"
+                if result.data:
+                    msg += f"\n\nDetalhes da resposta: {result.data}"
+                logger.success(msg)
+                success_box = CustomMessageBox(
+                    success_title,
+                    msg,
+                    self.success_icon_path,
+                    self,
+                )
+                success_box.exec()
+                if operation_type == CommandType.VALIDATION:
+                    self.edit.clear()
+            else:
+                logger.error(f"Erro na API: {result.message}")
+                error_box = CustomMessageBox(
+                    "Erro",
+                    f"Operação não realizada!\nEstapar API response: {result.message}",
+                    self.error_icon_path,
+                    self,
+                )
+                error_box.exec()
+
+        except Exception as e:
+            logger.critical(f"Erro inesperado: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            
             error_box = CustomMessageBox(
-                "Erro",
-                "Não foi possível encontrar o ticket do cliente.\nPor favor, verifique o código e tente novamente.\n",
-                self.error_icon_path,
-                self
-            )
-            error_box.exec()
-            return
-
-        # Criar uma requisição de exemplo
-        request = DiscountCreationDto(
-            card_barcode=ticket_code,
-            terminal_id=pdv_pedido.num_caixa,
-            num_cupom=pdv_pedido.num_cupom,
-            discount_datetime=resolve_date_to_timestamp(pdv_pedido.data, pdv_pedido.hora_cupom),
-            purchase_value=int(pdv_pedido.vl_total * 100),
-            fiscal_document="04558054000173",  # CNPJ válido
-        )
-
-        # # Chamar a função para criar desconto
-        result = create_discount(request, service)
-
-        # Exibir o resultado
-        logger.info(f"Success: {result.Success}, Message: {result.Message}")
-
-        if result.Success:
-            # Exibe uma caixa de mensagem personalizada para sucesso
-            success_box = CustomMessageBox(
-                "Sucesso",
-                f"Código validado com sucesso!\nEstapar API response: {result.Message}",
-                self.success_icon_path,
-                self,
-            )
-            success_box.exec()
-            self.edit.clear()
-        else:
-            # Exibe uma caixa de mensagem personalizada para erro
-            error_box = CustomMessageBox(
-                "Erro",
-                f"Código inválido!\nEstapar API response: {result.Message}",
+                "Erro Crítico",
+                f"Ocorreu um erro inesperado:\n{str(e)}\n\nVerifique os logs para mais detalhes.",
                 self.error_icon_path,
                 self,
             )

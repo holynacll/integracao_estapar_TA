@@ -7,90 +7,109 @@ from loguru import logger
 from dotenv import load_dotenv
 
 load_dotenv()
-IP = os.environ.get("IP")
-PORT = int(os.environ.get("PORT"))
+IP = "127.0.0.1"
+PORT = 33535
 
 
 def msg_process(mensagem):
     """Processa a mensagem recebida e retorna uma resposta simulada."""
+    try:
+        # Lendo os primeiros 2 bytes que indicam o tamanho da mensagem
+        msgBlockSize = struct.unpack("<H", mensagem[:2])[0]
 
-    # Lendo os primeiros 2 bytes que indicam o tamanho da mensagem
-    msgBlockSize = struct.unpack("<H", mensagem[:2])[0]
+        # Extraindo cmdType (4 bytes little-endian, começando no byte 4)
+        cmdType = struct.unpack("<I", mensagem[4:8])[0]
 
-    # Extraindo cmdType (4 bytes little-endian, começando no byte 4)
-    cmdType = struct.unpack("<I", mensagem[4:8])[0]
+        # Lendo o código do cartão (64 bytes, a partir do byte 25)
+        # Remove padding e decodifica como ASCII
+        card_id = mensagem[25:89].split(b'\x00')[0].decode('ascii')
 
-    # Lendo o código do cartão (64 bytes, a partir do byte 25)
-    card_id = mensagem[25:89].decode().strip("\x00")
+        logger.info(f"Recebido comando: {hex(cmdType)} para cartão {card_id}")
 
-    logger.info(f"Recebido comando: {hex(cmdType)} para cartão {card_id}")
+        # Definição do tipo de resposta
+        if cmdType == 0x0000000F:  # cmdConsult
+            rspType = 0x0001000F
+            status = 0x00000000  # Cartão validado
+            status_msg = f"Cartão validado até {time.strftime('%d/%m/%Y - %H:%M')}"
+        elif cmdType == 0x00000010:  # cmdValidation
+            rspType = 0x00010010
+            status = 0x00000000  # Cartão validado
+            status_msg = f"Cartão validado até {time.strftime('%d/%m/%Y - %H:%M')}"
+        else:
+            return None  # Comando desconhecido
 
-    # Definição do tipo de resposta
-    if cmdType == 0x0000000F:  # cmdConsult
-        rspType = 0x0001000F
-        status = 0x00000000  # Cartão validado
-    elif cmdType == 0x00000010:  # cmdValidation
-        rspType = 0x00010010
-        status = 0x00000002  # Cartão já validado
-    else:
-        return None  # Comando desconhecido
+        # Criando a resposta no formato esperado
+        rspTmt = int(time.time())  # Timestamp
+        rspSeqNo = struct.unpack("<I", mensagem[28:32])[0]  # Pega o cmdSeqNo da mensagem original
 
-    # Criando a resposta no formato esperado
-    rspTmt = int(time.time())  # Timestamp
-    rspSeqNo = 1  # Número sequencial da resposta
+        resposta = struct.pack(
+            "<HHI15s16sII64sI128s128s128sIHHI",
+            137,  # Tamanho fixo da resposta (137 bytes)
+            0,  # rspFiller
+            rspType,  # Tipo de resposta
+            b"04558054000173".ljust(15, b"\x00"),  # Assinatura da empresa
+            b"ESTAPAR".ljust(15, b" ") + b"\x00",  # Nome da empresa (16 bytes total)
+            rspTmt,  # Timestamp da resposta
+            rspSeqNo,  # Número sequencial (mesmo da requisição)
+            card_id.encode('ascii').ljust(64, b"\x00"),  # Código do cartão
+            status,  # Status da operação
+            status_msg.encode('ascii').ljust(128, b"\x00"),  # Mensagem para operador
+            status_msg.encode('ascii').ljust(128, b"\x00"),  # Mensagem para cliente
+            status_msg.encode('ascii').ljust(128, b"\x00"),  # Mensagem para impressão
+            int(time.time()) - 3600,  # Data de entrada (1 hora atrás)
+            0x0002,  # Tipo de veículo (Carro)
+            0x0000,  # Reservado (rspRUF_1)
+            0x00000000,  # Reservado (rspRUF_2)
+        )
 
-    resposta = struct.pack(
-        "<HHI15s16sII64sI128s128s128sIHHI",
-        msgBlockSize,  # Tamanho da mensagem
-        0,  # rspFiller
-        rspType,  # Tipo de resposta
-        b"04558054000173".ljust(15, b"\x00"),  # Assinatura da empresa
-        b"ESTAPAR".ljust(16, b"\x00"),  # Nome da empresa
-        rspTmt,  # Timestamp da resposta
-        rspSeqNo,  # Número sequencial
-        card_id.encode().ljust(64, b"\x00"),  # Código do cartão
-        status,  # Status da operação
-        b"Mensagem para operador".ljust(128, b"\x00"),  # Mensagem para operador
-        b"Mensagem para cliente".ljust(128, b"\x00"),  # Mensagem para cliente
-        b"Mensagem para impressao".ljust(128, b"\x00"),  # Mensagem para impressão
-        int(time.time()),  # Data de entrada (simulada)
-        0x0002,  # Tipo de veículo (Carro)
-        0x0000,  # Reservado
-        0x00000000,  # Reservado
-    )
+        return resposta
 
-    return resposta
+    except Exception as e:
+        logger.error(f"Erro ao processar mensagem: {e}")
+        return None
 
 
 def start_server():
     """Inicia o servidor e aguarda conexões."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.bind((IP, PORT))
         server.listen(5)
         logger.info(f"Servidor escutando em {IP}:{PORT}")
 
         while True:
-            conn, addr = server.accept()
-            logger.info(f"Conexão estabelecida de {addr}")
-            with conn:
-                logger.info(f"Conexão de {addr}")
+            try:
+                conn, addr = server.accept()
+                logger.info(f"Conexão estabelecida de {addr}")
+                with conn:
+                    # Lendo os primeiros 2 bytes para saber o tamanho da mensagem
+                    tamanho = conn.recv(2)
+                    if not tamanho:
+                        continue
 
-                # Lendo os primeiros 2 bytes para saber o tamanho da mensagem
-                tamanho = conn.recv(2)
-                if not tamanho:
-                    continue
+                    msg_size = struct.unpack("<H", tamanho)[0]
 
-                msg_size = struct.unpack("<H", tamanho)[0]
+                    # Lendo o restante da mensagem
+                    mensagem = b''
+                    while len(mensagem) < msg_size:
+                        chunk = conn.recv(msg_size - len(mensagem))
+                        if not chunk:
+                            break
+                        mensagem += chunk
 
-                # Lendo o restante da mensagem
-                mensagem = conn.recv(msg_size)
+                    if len(mensagem) == msg_size:
+                        # Processa a mensagem recebida e gera uma resposta
+                        resposta = msg_process(tamanho + mensagem)
 
-                # Processa a mensagem recebida e gera uma resposta
-                resposta = msg_process(tamanho + mensagem)
+                        if resposta:
+                            conn.sendall(resposta)
+                            logger.info("Resposta enviada!")
+                    else:
+                        logger.warning(f"Mensagem incompleta recebida de {addr}")
 
-                if resposta:
-                    conn.sendall(resposta)
-                    logger.info("Resposta enviada!")
+            except Exception as e:
+                logger.error(f"Erro na conexão: {e}")
+                continue
 
 
 if __name__ == "__main__":

@@ -1,22 +1,15 @@
 from loguru import logger
-from sqlalchemy.orm import Session
-from totalatacadot1.database import engine, Base, SessionLocal
-from totalatacadot1.models import PCPEDCECF, PCPEDCECFItem
+from totalatacadot1.database import OracleSessionLocal
+from totalatacadot1.models import PCPEDCECF
 from datetime import datetime
-
-
-# Criar as tabelas no banco de dados
-def create_tables():
-    Base.metadata.create_all(bind=engine)
-    logger.info("Tabelas criadas com sucesso!")
 
 
 # Inserir dados iniciais na tabela PCPEDCECF
 def populate_pdv():
-    session = SessionLocal()
+    session_oracle = OracleSessionLocal()
     try:
         # Verificar se já existem registros para evitar duplicação
-        existing_records = session.query(PCPEDCECF).first()
+        existing_records = session_oracle.query(PCPEDCECF).first()
         if existing_records:
             logger.info(
                 "A tabela PCPEDCECF já contém dados. Nenhuma inserção necessária."
@@ -63,17 +56,16 @@ def populate_pdv():
             ),
         ]
 
-        session.add_all(pdv_data)
-        session.commit()
+        session_oracle.add_all(pdv_data)
+        session_oracle.commit()
         logger.info("Registros inseridos com sucesso!")
 
     except Exception as e:
-        session.rollback()
+        session_oracle.rollback()
         logger.info(f"Erro ao inserir registros: {e}")
     finally:
-        session.close()
+        session_oracle.close()
 
 
 if __name__ == "__main__":
-    create_tables()
     populate_pdv()

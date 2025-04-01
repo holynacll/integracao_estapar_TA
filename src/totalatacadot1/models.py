@@ -2,11 +2,11 @@ from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, Integer, Numeric, Sequence, String, func
 from sqlalchemy.orm import Mapped, mapped_column
-from totalatacadot1.database import Base
+from totalatacadot1.database import BaseOracle, BaseSQLite
 
 
 # Definição da tabela PDV
-class PCPEDCECF(Base):
+class PCPEDCECF(BaseOracle):
     __tablename__ = "PCPEDCECF"
 
     num_ped_ecf: Mapped[int] = mapped_column(
@@ -26,29 +26,23 @@ class PCPEDCECF(Base):
             f"num_caixa={self.num_caixa}, "
             f"data={self.data}, "
             f"hora_cupom={self.hora_cupom}, "
-            f"num_cupom={self.num_cupom})"
-            f"vl_total={self.vl_total}, "
+            f"num_cupom={self.num_cupom},"
+            f"vl_total={self.vl_total}) "
         )
 
 
-class PCPEDCECFItem(Base):
-    __tablename__ = "PCPEDCECFItem"
+class ControlPDV(BaseSQLite):
+    __tablename__ = "ControlPDV"
 
-    id: Mapped[int] = mapped_column(
-        Integer, Sequence("PCPEDCECFItem_seq"), primary_key=True, name="ID"
-    )
-    num_ped_ecf: Mapped[int] = mapped_column(Integer, name="NUMPEDECF", nullable=True)
-    validated: Mapped[bool] = mapped_column(Boolean, name="VALIDATED", nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, name="CREATEDAT", server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, name="UPDATEDAT", server_default=func.now(), onupdate=func.now()
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    num_ped_ecf: Mapped[int] = mapped_column(Integer, nullable=False)
+    validated: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     def __repr__(self) -> str:
         return (
-            f"PCPEDCECFItem(num_ped_ecf={self.num_ped_ecf}, "
+            f"ControlPDV(num_ped_ecf={self.num_ped_ecf}, "
             f"validated={self.validated}, "
             f"created_at={self.created_at}, "
             f"updated_at={self.updated_at})"
