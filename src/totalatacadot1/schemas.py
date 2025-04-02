@@ -60,34 +60,36 @@ class DiscountRequest:
         """Serialização final corrigida para corresponder exatamente ao protocolo Estapar"""
         # cmdData - Formato corrigido conforme documentação Estapar
         cmd_data = struct.pack(
-            "<I64sIIIII",  # 7 itens no total (I64s conta como 2 + 5 inteiros)
+            "<I64sIIIIIIII", 
             self.cmd_term_id,               # 4 bytes
             self.cmd_card_id.encode('ascii').ljust(64, b'\x00'),  # 64 bytes
             self.cmd_op_value,              # 4 bytes
             self.cmd_op_seq_no,             # 4 bytes
             self.cmd_ruf_0,                 # 4 bytes
             self.cmd_ruf_1,                 # 4 bytes
-            self.cmd_sale_type              # 4 bytes
-        )  # Total: 64 + 6*4 = 64 + 24 = 88 bytes
+            self.cmd_sale_type,             # 4 bytes
+            self.cmd_op_display_len,        # 4 bytes
+            self.cmd_cust_display_len,      # 4 bytes
+            self.cmd_printer_line_len       # 4 bytes
+        ) # 100 bytes
 
         # cmdHeader - Formato exato conforme documentação
         cmd_header = struct.pack(
-            "<HHI15s16sII",  # 8 itens no total
-            0,                      # cmdFiller (2 bytes)
+            "<HI15s16sII", 
+            0,                       # cmdFiller (2 bytes)
             self.cmd_type.value,     # cmdType (4 bytes)
-            self.cmd_tmt,            # cmdTmt (4 bytes)
             self.cmd_signature.encode('ascii').ljust(15, b'\x00'),  # 15 bytes
-            b"ESTAPAR".ljust(15, b' ') + b'\x00',  # 16 bytes
+            self.cmd_company_sign,   # 16 bytes
+            self.cmd_tmt,            # cmdTmt (4 bytes)
             self.cmd_seq_no,         # cmdSeqNo (4 bytes)
-            len(cmd_data)            # Tamanho dos dados (4 bytes)
-        )  # Total: 2 + 4 + 4 + 15 + 16 + 4 + 4 = 49 bytes
+        )  
 
         # Combina header + data
-        message = cmd_header + cmd_data  # 49 + 88 = 137 bytes
+        message = cmd_header + cmd_data  
 
         # Adiciona o tamanho total no início (msgBlockSize)
-        msg_block_size = len(message)  # 137 bytes
-        full_message = struct.pack("<H", msg_block_size) + message  # 2 + 137 = 139 bytes
+        msg_block_size = len(message) 
+        full_message = struct.pack("<H", msg_block_size) + message
 
         return full_message    
 
