@@ -16,12 +16,12 @@ class AppController(QObject):
         super().__init__()
         self.app = QApplication(sys.argv)
         self.window = MainWindow()
-        
+
         # Conecta os sinais aos slots
         self.request_show_gui.connect(self._show_gui)
         self.request_hide_gui.connect(self._hide_gui)
         self.request_shutdown.connect(self._shutdown)
-        
+
         self.setup_tray_icon()
 
     def setup_tray_icon(self):
@@ -29,23 +29,23 @@ class AppController(QObject):
         self.tray_icon = QSystemTrayIcon(self.app)
         icon = str(get_assets_path() / "icons" / "icon")
         self.tray_icon.setIcon(QIcon(icon))
-        
+
         tray_menu = QMenu()
-        
+
         # Ações do menu
         show_action = QAction("Mostrar", self.app)
         show_action.triggered.connect(self.show_gui)  # Emite sinal
-        
+
         exit_action = QAction("Sair", self.app)
         exit_action.triggered.connect(self.shutdown)  # Emite sinal
-        
+
         tray_menu.addAction(show_action)
         tray_menu.addAction(exit_action)
-        
+
         self.tray_icon.setContextMenu(tray_menu)
         self.tray_icon.show()
         self.tray_icon.activated.connect(self.on_tray_icon_activated)
-    
+
     @Slot()
     def on_tray_icon_activated(self, reason):
         """Manipula ativações do ícone de forma thread-safe."""

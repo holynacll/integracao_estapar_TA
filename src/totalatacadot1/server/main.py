@@ -1,4 +1,3 @@
-import os
 import socket
 import struct
 import time
@@ -14,15 +13,12 @@ PORT = 33535
 def msg_process(mensagem):
     """Processa a mensagem recebida e retorna uma resposta simulada."""
     try:
-        # Lendo os primeiros 2 bytes que indicam o tamanho da mensagem
-        msgBlockSize = struct.unpack("<H", mensagem[:2])[0]
-
         # Extraindo cmdType (4 bytes little-endian, começando no byte 4)
         cmdType = struct.unpack("<I", mensagem[4:8])[0]
 
         # Lendo o código do cartão (64 bytes, a partir do byte 25)
         # Remove padding e decodifica como ASCII
-        card_id = mensagem[25:89].split(b'\x00')[0].decode('ascii')
+        card_id = mensagem[25:89].split(b"\x00")[0].decode("ascii")
 
         logger.info(f"Recebido comando: {hex(cmdType)} para cartão {card_id}")
 
@@ -40,7 +36,9 @@ def msg_process(mensagem):
 
         # Criando a resposta no formato esperado
         rspTmt = int(time.time())  # Timestamp
-        rspSeqNo = struct.unpack("<I", mensagem[28:32])[0]  # Pega o cmdSeqNo da mensagem original
+        rspSeqNo = struct.unpack("<I", mensagem[28:32])[
+            0
+        ]  # Pega o cmdSeqNo da mensagem original
 
         resposta = struct.pack(
             "<HHI15s16sII64sI128s128s128sIHHI",
@@ -51,11 +49,11 @@ def msg_process(mensagem):
             b"ESTAPAR".ljust(15, b" ") + b"\x00",  # Nome da empresa (16 bytes total)
             rspTmt,  # Timestamp da resposta
             rspSeqNo,  # Número sequencial (mesmo da requisição)
-            card_id.encode('ascii').ljust(64, b"\x00"),  # Código do cartão
+            card_id.encode("ascii").ljust(64, b"\x00"),  # Código do cartão
             status,  # Status da operação
-            status_msg.encode('ascii').ljust(128, b"\x00"),  # Mensagem para operador
-            status_msg.encode('ascii').ljust(128, b"\x00"),  # Mensagem para cliente
-            status_msg.encode('ascii').ljust(128, b"\x00"),  # Mensagem para impressão
+            status_msg.encode("ascii").ljust(128, b"\x00"),  # Mensagem para operador
+            status_msg.encode("ascii").ljust(128, b"\x00"),  # Mensagem para cliente
+            status_msg.encode("ascii").ljust(128, b"\x00"),  # Mensagem para impressão
             int(time.time()) - 3600,  # Data de entrada (1 hora atrás)
             0x0002,  # Tipo de veículo (Carro)
             0x0000,  # Reservado (rspRUF_1)
@@ -90,7 +88,7 @@ def start_server():
                     msg_size = struct.unpack("<H", tamanho)[0]
 
                     # Lendo o restante da mensagem
-                    mensagem = b''
+                    mensagem = b""
                     while len(mensagem) < msg_size:
                         chunk = conn.recv(msg_size - len(mensagem))
                         if not chunk:

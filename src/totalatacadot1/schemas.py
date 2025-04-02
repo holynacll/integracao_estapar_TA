@@ -5,25 +5,26 @@ import time
 
 from totalatacadot1.enums import CommandType, ResponseStatus
 
+
 @dataclass
 class DiscountRequest:
-    cmd_term_id: int # numcaixa
-    cmd_card_id: str # código de barras do cartão
-    cmd_op_value: int # em centavos
-    cmd_signature: str = "04558054000173" # Fiscal Document CNPJ
-    cmd_op_seq_no: int = 0 # numcupom / get next number / zero por enquanto
+    cmd_term_id: int  # numcaixa
+    cmd_card_id: str  # código de barras do cartão
+    cmd_op_value: int  # em centavos
+    cmd_signature: str = "04558054000173"  # Fiscal Document CNPJ
+    cmd_op_seq_no: int = 0  # numcupom / get next number / zero por enquanto
     cmd_ruf_0: int = 0xFFFFFFFF
     cmd_ruf_1: int = 0xFFFFFFFF
     cmd_sale_type: int = 0xFFFFFFFF
     cmd_op_display_len: int = 0
     cmd_cust_display_len: int = 0
     cmd_printer_line_len: int = 40
-    
+
     cmd_tmt: int = int(time.time())
     cmd_type: CommandType = CommandType.VALIDATION
-    cmd_company_sign: bytes = b"ESTAPAR" + b' '*8 + b'\x00'  # 16 bytes total
+    cmd_company_sign: bytes = b"ESTAPAR" + b" " * 8 + b"\x00"  # 16 bytes total
     cmd_seq_no: int = 0
-    
+
     def __repr__(self):
         return f"""DiscountRequest(
             cmd_term_id={self.cmd_term_id},
@@ -42,7 +43,7 @@ class DiscountRequest:
             cmd_company_sign={self.cmd_company_sign},
             cmd_seq_no={self.cmd_seq_no}
         )"""
-    
+
     def validate(self):
         """Validação consolidada como no C#"""
         if self.cmd_op_value <= 0:
@@ -55,55 +56,59 @@ class DiscountRequest:
             raise ValueError("Documento fiscal inválido")
         # if not validar_cnpj(self.cmd_signature):
         #     raise ValueError("Documento fiscal inválido (CNPJ inválido)")
-    
+
     def serialize(self) -> bytes:
         """Serialização final corrigida para corresponder exatamente ao protocolo Estapar"""
         # cmdData - Formato corrigido conforme documentação Estapar
         cmd_data = struct.pack(
-            "<I64sIIIIIIII", 
-            self.cmd_term_id,               # 4 bytes
-            self.cmd_card_id.encode('ascii').ljust(64, b'\x00'),  # 64 bytes
-            self.cmd_op_value,              # 4 bytes
-            self.cmd_op_seq_no,             # 4 bytes
-            self.cmd_ruf_0,                 # 4 bytes
-            self.cmd_ruf_1,                 # 4 bytes
-            self.cmd_sale_type,             # 4 bytes
-            self.cmd_op_display_len,        # 4 bytes
-            self.cmd_cust_display_len,      # 4 bytes
-            self.cmd_printer_line_len       # 4 bytes
-        ) # 100 bytes
+            "<I64sIIIIIIII",
+            self.cmd_term_id,  # 4 bytes
+            self.cmd_card_id.encode("ascii").ljust(64, b"\x00"),  # 64 bytes
+            self.cmd_op_value,  # 4 bytes
+            self.cmd_op_seq_no,  # 4 bytes
+            self.cmd_ruf_0,  # 4 bytes
+            self.cmd_ruf_1,  # 4 bytes
+            self.cmd_sale_type,  # 4 bytes
+            self.cmd_op_display_len,  # 4 bytes
+            self.cmd_cust_display_len,  # 4 bytes
+            self.cmd_printer_line_len,  # 4 bytes
+        )  # 100 bytes
 
         # cmdHeader - Formato exato conforme documentação
         cmd_header = struct.pack(
-            "<HI15s16sII", 
-            0,                       # cmdFiller (2 bytes)
-            self.cmd_type.value,     # cmdType (4 bytes)
-            self.cmd_signature.encode('ascii').ljust(15, b'\x00'),  # 15 bytes
-            self.cmd_company_sign,   # 16 bytes
-            self.cmd_tmt,            # cmdTmt (4 bytes)
-            self.cmd_seq_no,         # cmdSeqNo (4 bytes)
-        )  
+            "<HI15s16sII",
+            0,  # cmdFiller (2 bytes)
+            self.cmd_type.value,  # cmdType (4 bytes)
+            self.cmd_signature.encode("ascii").ljust(15, b"\x00"),  # 15 bytes
+            self.cmd_company_sign,  # 16 bytes
+            self.cmd_tmt,  # cmdTmt (4 bytes)
+            self.cmd_seq_no,  # cmdSeqNo (4 bytes)
+        )
 
         # Combina header + data
-        message = cmd_header + cmd_data  
+        message = cmd_header + cmd_data
 
         # Adiciona o tamanho total no início (msgBlockSize)
-        msg_block_size = len(message) 
+        msg_block_size = len(message)
         full_message = struct.pack("<H", msg_block_size) + message
 
-        return full_message    
+        return full_message
+
 
 @dataclass
 class DiscountResponse:
     """Estrutura de resposta da API"""
+
     status: ResponseStatus
     message: str
     entry_timestamp: Optional[int] = None
     vehicle_type: Optional[str] = None
 
+
 @dataclass
 class ResponseReturn:
     """Retorno padronizado para o cliente"""
+
     success: bool
     message: str
     data: Optional[DiscountResponse] = None

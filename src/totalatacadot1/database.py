@@ -49,11 +49,15 @@ DATABASE_URLS = [
 
 # Configurações do banco de dados SQLite
 SQLITE_DB_PATH = Path(get_project_root()) / "data" / "control_pdv.db"
-SQLITE_DB_PATH.parent.mkdir(parents=True, exist_ok=True)  # Cria o diretório se não existir
+SQLITE_DB_PATH.parent.mkdir(
+    parents=True, exist_ok=True
+)  # Cria o diretório se não existir
 SQLITE_URL = f"sqlite:///{SQLITE_DB_PATH}"
+
 
 class BaseOracle(DeclarativeBase):
     pass
+
 
 class BaseSQLite(DeclarativeBase):
     pass
@@ -63,7 +67,9 @@ oracle_engine = None
 sqlite_engine = None
 for database_url in DATABASE_URLS:
     try:
-        oracle_engine = create_engine(database_url, echo=True)  # echo=True para logs de SQL no console
+        oracle_engine = create_engine(
+            database_url, echo=True
+        )  # echo=True para logs de SQL no console
         connection = oracle_engine.connect()
         connection.close()
         logger.info(f"Conexão Oracle bem-sucedida: {database_url}")
@@ -78,7 +84,9 @@ if oracle_engine is None:
 sqlite_engine = create_engine(
     SQLITE_URL,
     echo=True,
-    connect_args={"check_same_thread": False}  # Necessário para SQLite em aplicações multi-thread
+    connect_args={
+        "check_same_thread": False
+    },  # Necessário para SQLite em aplicações multi-thread
 )
 
 # Criar as sessões para cada banco de dados
@@ -94,6 +102,7 @@ def get_oracle_db():
     finally:
         db.close()
 
+
 # Função para obter uma sessão do SQLite
 def get_sqlite_db():
     db = SQLiteSessionLocal()
@@ -102,17 +111,21 @@ def get_sqlite_db():
     finally:
         db
 
+
 # Context manager para usar em blocos 'with'
 db_oracle_context = contextmanager(get_oracle_db)
 db_sqlite_context = contextmanager(get_sqlite_db)
+
 
 # Funções para criar as tabelas no SQLite (se não existirem)
 def create_sqlite_tables():
     BaseSQLite.metadata.create_all(bind=sqlite_engine, checkfirst=True)
 
+
 # Funções para criar as tabelas no Oracle
 def create_oracle_tables():
     BaseOracle.metadata.create_all(bind=oracle_engine, checkfirst=True)
+
 
 # Função para inicializar o banco de dados
 def init_db():

@@ -10,9 +10,7 @@ def get_last_pdv_pedido() -> PCPEDCECF:
 def get_pdv_control_item_by_num_ped_ecf(num_ped_ecf: int) -> ControlPDV:
     with db_sqlite_context() as db:
         return (
-            db.query(ControlPDV)
-            .filter(ControlPDV.num_ped_ecf == num_ped_ecf)
-            .first()
+            db.query(ControlPDV).filter(ControlPDV.num_ped_ecf == num_ped_ecf).first()
         )
 
 

@@ -47,9 +47,9 @@ def main():
 
     log_file = log_dir / "app.log"
     logger.add(log_file, rotation="1 day", retention="7 days")
-    logger.add(sys.stdout, format="{time} {level} {message}", level="INFO")  
+    logger.add(sys.stdout, format="{time} {level} {message}", level="INFO")
     logger.info("Iniciando o aplicativo...")
-    
+
     # init db
     init_db()
 

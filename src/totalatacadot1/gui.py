@@ -1,3 +1,4 @@
+# gui.py
 from datetime import datetime
 import os
 import sys
@@ -17,28 +18,49 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QComboBox,
     QFrame,
-    QGraphicsOpacityEffect,
+    QGraphicsOpacityEffect, # Importar QGraphicsOpacityEffect
 )
-from PySide6.QtGui import QIcon, QFont, QPixmap, QPainter, QBrush
-from qt_material import apply_stylesheet
+from PySide6.QtGui import QIcon, QFont, QPixmap, QPainter, QBrush, QPalette, QColor # Importar QColor
+# from qt_material import apply_stylesheet # Manter comentado por enquanto
 # from dotenv import load_dotenv
 
 from totalatacadot1.enums import CommandType
 from totalatacadot1.estapar_integration_service import EstaparIntegrationService
 from totalatacadot1.custom_message_box import CustomMessageBox
-from totalatacadot1.estapar_integration_service import EstaparIntegrationService
-from totalatacadot1.models import PCPEDCECF
 from totalatacadot1.repository import get_last_pdv_pedido
 from totalatacadot1.schemas import DiscountRequest
-from totalatacadot1.utils import resolve_date_to_timestamp
 
 from .config import get_assets_path
 
 # load_dotenv()
 
 # Estapar API
-IP="10.7.39.10"
-PORT=3000
+IP = "10.7.39.10"
+PORT = 3000
+
+
+def is_dark_theme():
+    """Verifica se o tema atual da aplicação Qt é considerado escuro."""
+    try:
+        # Tenta obter a paleta da aplicação. Pode falhar se QApplication não existir ainda.
+        app_instance = QApplication.instance()
+        if not app_instance:
+             # Se a aplicação ainda não foi criada, tente usar a paleta padrão do estilo
+             # Pode não ser 100% preciso antes da app rodar, mas é uma tentativa.
+             # Ou podemos assumir um padrão (ex: light) se a app não existe.
+             # Para simplificar, vamos assumir light se não houver app.instance()
+            logger.warning("QApplication instance not found for theme detection. Assuming light theme.")
+            return False
+
+        palette = app_instance.palette()
+        # Compara o brilho da cor de fundo da janela com um limiar
+        # O valor 128 é um ponto médio comum (0=preto, 255=branco)
+        window_color = palette.color(QPalette.ColorRole.Window)
+        # Usar QColor para obter HSL lightness
+        return QColor(window_color).lightnessF() < 0.5 # Usar lightnessF() que retorna 0.0 a 1.0
+    except Exception as e:
+        logger.error(f"Error detecting theme: {e}. Assuming light theme.")
+        return False # Assume light theme em caso de erro
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -47,22 +69,29 @@ class MainWindow(QMainWindow):
         icon_path = str(get_assets_path() / "icons" / "icon")
         self.setWindowIcon(QIcon(icon_path))
         self.setGeometry(100, 100, 1024, 768)
-        
-        # Configura as flags da janela para remover o botão de minimizar
+
         self.setWindowFlags(
-            Qt.WindowType.Window |  # Tipo básico de janela
-            Qt.WindowType.WindowCloseButtonHint |  # Garante o botão de fechar
-            Qt.WindowType.WindowMaximizeButtonHint |  # Botão de maximizar/redimensionar
-            Qt.WindowType.CustomizeWindowHint  # Permite personalização
+            Qt.WindowType.Window |
+            Qt.WindowType.WindowSystemMenuHint |
+            Qt.WindowType.WindowTitleHint |
+            Qt.WindowType.WindowMinMaxButtonsHint |
+            Qt.WindowType.WindowCloseButtonHint
         )
 
         self.main_widget = MainWidget()
         self.setCentralWidget(self.main_widget)
 
     def closeEvent(self, event):
-        # Override the close event to hide the window instead of closing it
         event.ignore()
         self.hide()
+
+    # Opcional: Ouvir mudanças de paleta (pode não pegar todas as mudanças de tema do SO)
+    # def changeEvent(self, event):
+    #     if event.type() == event.Type.PaletteChange:
+    #         logger.info("Palette changed, reapplying styles.")
+    #         if self.main_widget:
+    #              self.main_widget.apply_dynamic_styles()
+    #     super().changeEvent(event)
 
 
 class MainWidget(QWidget):
@@ -73,169 +102,219 @@ class MainWidget(QWidget):
         )
         self.success_icon_path = str(get_assets_path() / "images" / "checked.png")
         self.error_icon_path = str(get_assets_path() / "images" / "warning.png")
+
+        # Determina o tema ANTES de iniciar a UI para que os estilos base sejam aplicados
+        self._dark_theme_active = is_dark_theme()
+        logger.info(f"Theme detected: {'Dark' if self._dark_theme_active else 'Light'}")
+
         self.init_ui()
+        self.apply_dynamic_styles() # Aplica os estilos após a criação dos widgets
 
     def init_ui(self):
-        # Carrega a imagem original
-        pixmap = QPixmap(self.background_image_path)
-
-        # Criando um novo pixmap com transparência
-        transparent_pixmap = QPixmap(pixmap.size())
-        transparent_pixmap.fill(Qt.GlobalColor.transparent)
-
-        # Aplicando a opacidade na imagem
-        painter = QPainter(transparent_pixmap)
-        painter.setOpacity(
-            0.2
-        )  # Ajuste a opacidade aqui (1.0 = sem transparência, 0.0 = totalmente transparente)
-        painter.drawPixmap(0, 0, pixmap)
-        painter.end()
-
-        # Criar um QLabel para o fundo
+        # --- Background Setup ---
         self.background_label = QLabel(self)
-        self.background_label.setPixmap(transparent_pixmap)
-        self.background_label.setScaledContents(True)  # Faz a imagem se expandir
-        self.background_label.resize(self.size())  # Ajusta ao tamanho da tela
+        pixmap = QPixmap(self.background_image_path)
+        self.background_label.setPixmap(pixmap)
+        self.background_label.setScaledContents(True)
+        # Cria o efeito de opacidade (será configurado em apply_dynamic_styles)
+        self.opacity_effect = QGraphicsOpacityEffect(self)
+        self.background_label.setGraphicsEffect(self.opacity_effect)
+        # Garante que o label de fundo fique atrás dos outros widgets
+        self.background_label.lower()
 
-        # Criando layout principal (widgets ficarão sobre o frame)
+        # --- Layout Principal ---
         main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(50, 50, 50, 50) # Adiciona margens
         main_layout.setSpacing(20)
         main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Title
+        # --- Widgets ---
         self.title = QLabel("Integração Estacionamento")
+        self.title.setObjectName("titleLabel") # Definir nome para estilo específico se necessário
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title.setFont(QFont("Arial", 36, QFont.Weight.Bold))
-        self.title.setStyleSheet("color: #222;")
-        
-        # Adicionando o ComboBox para seleção do tipo de operação
+
         self.operation_label = QLabel("Tipo de Operação:")
         self.operation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.operation_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        self.operation_label.setStyleSheet("""color: #444;""")
 
         self.operation_combo = QComboBox()
         self.operation_combo.addItem("Consulta", CommandType.CONSULT)
         self.operation_combo.addItem("Validação", CommandType.VALIDATION)
         self.operation_combo.setFixedHeight(50)
-        self.operation_combo.setStyleSheet("""
-            QComboBox {
-                font-size: 16px;
-                padding: 10px;
-                border: 2px solid #bbb;
-                border-radius: 10px;
-                background-color: white;
-            }
+        self.operation_combo.setFont(QFont("Arial", 14)) # Definir fonte base
 
-            QComboBox:focus {
-                border: 2px solid #007BFF;
-                background-color: #F0F8FF;
-                outline: none;
-            }
-
-            QComboBox:hover {
-                border: 2px solid #0056b3;
-            }
-        """)
-
-        # Input Label
         self.label = QLabel("Ticket do Cliente:")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        self.label.setStyleSheet("""color: #444;""")
 
-        # Input Field
         self.edit = QLineEdit()
         self.edit.setPlaceholderText("Escreva o código aqui")
         self.edit.setFixedHeight(50)
-        self.edit.setStyleSheet("""
-            QLineEdit {
-                font-size: 16px;
-                padding: 10px;
-                border: 2px solid #bbb;
-                border-radius: 10px;
-                background-color: white;
-            }
-
-            QLineEdit:focus {
-                border: 2px solid #007BFF;
-                background-color: #F0F8FF;
-                outline: none;
-            }
-
-            QLineEdit:hover {
-                border: 2px solid #0056b3;
-            }
-        """)
+        self.edit.setFont(QFont("Arial", 14)) # Definir fonte base
 
         self.button = QPushButton("Validar")
         self.button.setFixedHeight(50)
         self.button.clicked.connect(self.process_ticket)
         self.button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.button.setStyleSheet("""
-            QPushButton {
-                font-size: 16px;
-                font-weight: bold;
-                background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, stop:0 #007BFF, stop:1 #0056b3);
-                color: white;
-                border-radius: 12px;
-                padding: 12px;
-                border: none;
-            }
-            
-            QPushButton:hover {
-                background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, stop:0 #0056b3, stop:1 #003d80);
-            }
-            
-            QPushButton:pressed {
-                background-color: #003d80;
-            }
-        """)
+        self.button.setFont(QFont("Arial", 14, QFont.Weight.Bold)) # Definir fonte base
 
-        # Input Label
-        self.footer_label = QLabel("@ 2025 Total Atacado")
+        self.footer_label = QLabel(f"© {datetime.now().year} Total Atacado")
+        self.footer_label.setObjectName("footerLabel")
         self.footer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.footer_label.setFont(QFont("Arial", 14, QFont.Weight.DemiBold))
-        self.footer_label.setStyleSheet("""color: #444;""")
+        self.footer_label.setFont(QFont("Arial", 12, QFont.Weight.DemiBold))
 
-        # layout = QVBoxLayout(self.frame)
-        main_layout.setSpacing(20)
-        main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # --- Adicionando Widgets ao Layout ---
         main_layout.addWidget(self.title)
-        # Adiciona um espaço para empurrar os elementos para baixo
-        main_layout.addSpacerItem(
-            QSpacerItem(
-                20, 50, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
-            )
-        )
-        
+        main_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
         main_layout.addWidget(self.operation_label)
         main_layout.addWidget(self.operation_combo)
-        main_layout.addSpacerItem(
-            QSpacerItem(
-                20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
-            )
-        )
-
+        main_layout.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)) # Espaço menor
         main_layout.addWidget(self.label)
         main_layout.addWidget(self.edit)
+        main_layout.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)) # Espaço menor
         main_layout.addWidget(self.button)
-        main_layout.addSpacerItem(
-            QSpacerItem(
-                20, 50, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
-            )
-        )
+        main_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
         main_layout.addWidget(self.footer_label)
 
-        self.setLayout(main_layout)
+        # Não precisa mais de self.setLayout(main_layout), pois foi passado no construtor do QVBoxLayout
+
+    def apply_dynamic_styles(self):
+        """Aplica estilos aos widgets com base no tema detectado."""
+        dark = self._dark_theme_active
+
+        # --- Definição das Cores ---
+        text_color = "#E0E0E0" if dark else "#222222" # Texto principal (claro no escuro, escuro no claro)
+        secondary_text = "#B0B0B0" if dark else "#555555" # Texto secundário/labels
+        footer_text = "#909090" if dark else "#666666" # Texto do rodapé
+        background_color = "#2E2E2E" if dark else "#F0F0F0" # Cor de fundo geral do widget (se necessário)
+        input_bg = "#3C3C3C" if dark else "#FFFFFF"
+        input_text = "#F0F0F0" if dark else "#111111"
+        border_color = "#555555" if dark else "#BBBBBB"
+        border_focus_color = "#4A9CFF" # Azul vibrante para foco (funciona em ambos)
+        button_bg_start = "#4A9CFF" if dark else "#007BFF" # Gradiente do botão
+        button_bg_end = "#1B6CD3" if dark else "#0056b3"
+        button_hover_start = "#5AAFFF" if dark else "#0056b3" # Hover um pouco mais claro/diferente
+        button_hover_end = "#2C7CEF" if dark else "#003d80"
+        button_text = "#FFFFFF" # Texto do botão sempre branco
+
+        # Aplica a cor de fundo ao widget principal
+        # self.setStyleSheet(f"QWidget {{ background-color: {background_color}; }}")
+        # Ou, para manter a imagem de fundo, ajustamos apenas a opacidade dela:
+        self.opacity_effect.setOpacity(0.3 if dark else 0.15) # Ajuste a opacidade conforme necessário
+
+        # --- Estilos CSS ---
+        # Nota: Usar f-strings dentro de stylesheets pode ser confuso com as chaves {}.
+        # É mais seguro formatar as cores antes.
+        style_sheet = f"""
+            QWidget {{
+                /* background-color: {background_color}; Sem isso para ver a imagem */
+                color: {secondary_text}; /* Cor de texto padrão para labels */
+            }}
+
+            QLabel#titleLabel {{
+                color: {text_color};
+            }}
+
+            QLabel#footerLabel {{
+                color: {footer_text};
+            }}
+
+            QLineEdit {{
+                background-color: {input_bg};
+                color: {input_text};
+                border: 1px solid {border_color};
+                border-radius: 8px;
+                padding: 10px;
+                font-size: 14px;
+            }}
+            QLineEdit:focus {{
+                border: 1.5px solid {border_focus_color};
+                /* background-color: ligeiramente diferente no foco? opcional */
+            }}
+            QLineEdit:hover {{
+                 border: 1px solid {border_focus_color}; /* Ou uma cor de hover específica */
+            }}
+
+            QComboBox {{
+                background-color: {input_bg};
+                color: {input_text};
+                border: 1px solid {border_color};
+                border-radius: 8px;
+                padding: 10px;
+                font-size: 14px;
+            }}
+            QComboBox:focus {{
+                border: 1.5px solid {border_focus_color};
+            }}
+            QComboBox:hover {{
+                 border: 1px solid {border_focus_color};
+            }}
+            QComboBox::drop-down {{ /* Estilizar a seta */
+                border: none;
+                background-color: transparent;
+                /* subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 20px; */
+            }}
+            QComboBox::down-arrow {{
+                 /* Idealmente usar um ícone SVG aqui que possa ter a cor trocada */
+                 /* image: url(:/icons/down_arrow_{'dark' if dark else 'light'}.svg); */
+                 /* Se não tiver ícone, a seta padrão do sistema será usada */
+            }}
+            QComboBox QAbstractItemView {{ /* Estilo do dropdown menu */
+                background-color: {input_bg};
+                color: {input_text};
+                border: 1px solid {border_color};
+                selection-background-color: {border_focus_color};
+                selection-color: {button_text}; /* Texto do item selecionado */
+            }}
+
+            QPushButton {{
+                font-size: 14px; /* Reduzido para consistência */
+                font-weight: bold;
+                background: qlineargradient(
+                    spread:pad, x1:0, y1:0, x2:1, y2:0, /* Gradiente Horizontal */
+                    stop:0 {button_bg_start},
+                    stop:1 {button_bg_end}
+                );
+                color: {button_text};
+                border-radius: 8px;
+                padding: 12px;
+                border: none;
+                outline: none; /* Remove outline pontilhado no foco */
+            }}
+
+            QPushButton:hover {{
+                background: qlineargradient(
+                    spread:pad, x1:0, y1:0, x2:1, y2:0,
+                    stop:0 {button_hover_start},
+                    stop:1 {button_hover_end}
+                );
+            }}
+
+            QPushButton:pressed {{
+                background-color: {button_hover_end}; /* Cor sólida ao pressionar */
+            }}
+
+            QPushButton:focus {{ /* Adiciona um indicador de foco sutil */
+                 border: 1.5px solid {border_focus_color};
+                 /* Padding precisa ser ajustado para compensar a borda */
+                 padding: 10.5px;
+            }}
+
+        """
+        self.setStyleSheet(style_sheet)
 
     def resizeEvent(self, event):
-        """Redimensiona a imagem de fundo quando a janela for redimensionada"""
-        self.background_label.resize(self.size())
+        """Redimensiona a imagem de fundo quando a janela for redimensionada."""
+        # Move e redimensiona o label de fundo para cobrir todo o widget
+        self.background_label.setGeometry(0, 0, self.width(), self.height())
+        super().resizeEvent(event) # Chama o método da classe pai
 
     @Slot()
     def process_ticket(self):
-        """Processa o ticket conforme a operação selecionada (consulta ou validação)"""
+        # ... (seu código de processamento de ticket permanece o mesmo) ...
         try:
             logger.debug("Iniciando processamento de ticket")
             ticket_code = self.edit.text().strip()
@@ -245,6 +324,7 @@ class MainWidget(QWidget):
 
             if not ticket_code:
                 logger.warning("Ticket vazio recebido")
+                # Usar CustomMessageBox (assumindo que ele também respeita o tema ou é neutro)
                 error_box = CustomMessageBox(
                     "Erro",
                     "Código inválido!\nPor favor, verifique o código e tente novamente.\n",
@@ -256,14 +336,14 @@ class MainWidget(QWidget):
 
             logger.debug("Consultando último pedido PDV")
             pdv_pedido = get_last_pdv_pedido()
-            
+
             if not pdv_pedido:
                 logger.error("Nenhum pedido PDV encontrado")
                 error_box = CustomMessageBox(
                     "Erro",
                     "Não foi possível encontrar o ticket do cliente.\nPor favor, verifique o código e tente novamente.\n",
                     self.error_icon_path,
-                    self
+                    self,
                 )
                 error_box.exec()
                 return
@@ -272,10 +352,10 @@ class MainWidget(QWidget):
             discount_request = DiscountRequest(
                 cmd_card_id=ticket_code,
                 cmd_term_id=pdv_pedido.num_caixa,
-                cmd_op_value=int(pdv_pedido.vl_total*100),
+                cmd_op_value=int(pdv_pedido.vl_total * 100),
                 cmd_type=operation_type,
             )
-            
+
             logger.debug("Criando instancia do servico de integração com a estapar")
             service = EstaparIntegrationService(IP, PORT)
 
@@ -283,10 +363,13 @@ class MainWidget(QWidget):
             result = service.create_discount(discount_request)
             logger.debug(f"Resposta da API: {result}")
             if result.success:
-                success_title = "Validação Realizada"
-                msg = f"Operação realizada com sucesso!\nEstapar API response: {result.message}"
+                success_title = "Consulta Realizada" if operation_type == CommandType.CONSULT else "Validação Realizada"
+                msg = f"Operação realizada com sucesso!\nAPI Estapar: {result.message}"
                 if result.data:
-                    msg += f"\n\nDetalhes da resposta: {result.data}"
+                     # Formatando um pouco melhor os dados se existirem
+                     details = "\n".join([f"  {k}: {v}" for k,v in result.data.items()])
+                     msg += f"\n\nDetalhes:\n{details}"
+
                 logger.success(msg)
                 success_box = CustomMessageBox(
                     success_title,
@@ -301,7 +384,7 @@ class MainWidget(QWidget):
                 logger.error(f"Erro na API: {result.message}")
                 error_box = CustomMessageBox(
                     "Erro",
-                    f"Operação não realizada!\nEstapar API response: {result.message}",
+                    f"Operação não realizada!\nAPI Estapar: {result.message}",
                     self.error_icon_path,
                     self,
                 )
@@ -310,8 +393,8 @@ class MainWidget(QWidget):
         except Exception as e:
             logger.critical(f"Erro inesperado: {str(e)}")
             import traceback
-            traceback.print_exc()
-            
+            traceback.print_exc() # Imprime o stack trace completo no console/log
+
             error_box = CustomMessageBox(
                 "Erro Crítico",
                 f"Ocorreu um erro inesperado:\n{str(e)}\n\nVerifique os logs para mais detalhes.",
@@ -319,3 +402,22 @@ class MainWidget(QWidget):
                 self,
             )
             error_box.exec()
+
+
+# # Bloco principal para execução (se este for o script principal)
+# if __name__ == "__main__":
+#     # Configuração básica do logger (opcional, mas útil)
+#     log_format = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+#     logger.add("app.log", rotation="10 MB", level="DEBUG", format=log_format) # Log em arquivo
+#     logger.add(sys.stderr, level="INFO", format=log_format) # Log no console
+
+#     logger.info("Iniciando aplicação...")
+#     app = QApplication(sys.argv)
+
+#     # Tentar definir um estilo base que pode ajudar na integração com o tema do SO
+#     # app.setStyle("Fusion") # Fusion geralmente funciona bem em diferentes plataformas
+
+#     main_window = MainWindow()
+#     main_window.show()
+#     logger.info("Aplicação iniciada.")
+#     sys.exit(app.exec())
