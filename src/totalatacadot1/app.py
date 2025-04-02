@@ -1,4 +1,5 @@
 import os
+import platform
 import sys
 from threading import Thread
 from pathlib import Path
@@ -15,8 +16,8 @@ from totalatacadot1.repository import (
     get_pdv_control_item_by_num_ped_ecf,
 )
 
-os.environ["QT_QPA_PLATFORM"] = "xcb"
-# os.environ["QT_QPA_PLATFORM"] = "windows"  # or "direct2d"
+if platform.system() == "Linux":
+    os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 
 def background_task(controller: AppController):
