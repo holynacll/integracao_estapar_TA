@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime, UTC
 import struct
 from typing import Optional
 import time
@@ -97,12 +98,40 @@ class DiscountRequest:
 
 @dataclass
 class DiscountResponse:
-    """Estrutura de resposta da API"""
-
     status: ResponseStatus
     message: str
     entry_timestamp: Optional[int] = None
     vehicle_type: Optional[str] = None
+
+    def __str__(self):
+        """Retorna uma string formatada com os detalhes da resposta."""
+        lines = ["Detalhes Adicionais:"] # Cabeçalho para os detalhes
+
+        # Formata a data/hora de entrada (se disponível)
+        if self.entry_timestamp is not None:
+            try:
+                dt_object = datetime.fromtimestamp(self.entry_timestamp, UTC)
+                # Formato mais comum no Brasil: DD/MM/AAAA HH:MM:SS
+                formatted_time = dt_object.strftime("%d/%m/%Y %H:%M:%S") 
+                lines.append(f"    Data/Hora de Entrada: {formatted_time}")
+            except (TypeError, ValueError):
+                 # Caso o timestamp seja inválido por algum motivo
+                 lines.append(f"    Data/Hora de Entrada: (timestamp inválido: {self.entry_timestamp})")
+        else:
+            # Se não houver timestamp na resposta
+            lines.append("    Data/Hora de Entrada: Não informada")
+
+        # Formata o tipo de veículo (se disponível)
+        vehicle_display = self.vehicle_type if self.vehicle_type is not None else "Não informado"
+        lines.append(f"    Tipo de Veículo: {vehicle_display}")
+
+        # Adiciona o status parseado para clareza (opcional)
+        # lines.append(f"    Status Detalhado: {self.status.name}") 
+
+        # Retorna as linhas unidas por quebra de linha
+        # Só retorna os detalhes se houver mais do que o cabeçalho
+        return "\n".join(lines) if len(lines) > 1 else ""
+
 
 
 @dataclass

@@ -1,7 +1,5 @@
 # gui.py
 from datetime import datetime
-import os
-import sys
 
 from loguru import logger
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, Slot
@@ -85,15 +83,6 @@ class MainWindow(QMainWindow):
         event.ignore()
         self.hide()
 
-    # Opcional: Ouvir mudanças de paleta (pode não pegar todas as mudanças de tema do SO)
-    # def changeEvent(self, event):
-    #     if event.type() == event.Type.PaletteChange:
-    #         logger.info("Palette changed, reapplying styles.")
-    #         if self.main_widget:
-    #              self.main_widget.apply_dynamic_styles()
-    #     super().changeEvent(event)
-
-
 class MainWidget(QWidget):
     def __init__(self):
         super().__init__()
@@ -153,7 +142,7 @@ class MainWidget(QWidget):
         self.edit.setFixedHeight(50)
         self.edit.setFont(QFont("Arial", 14)) # Definir fonte base
 
-        self.button = QPushButton("Validar")
+        self.button = QPushButton("Processar")
         self.button.setFixedHeight(50)
         self.button.clicked.connect(self.process_ticket)
         self.button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -366,9 +355,16 @@ class MainWidget(QWidget):
                 success_title = "Consulta Realizada" if operation_type == CommandType.CONSULT else "Validação Realizada"
                 msg = f"Operação realizada com sucesso!\nAPI Estapar: {result.message}"
                 if result.data:
-                     # Formatando um pouco melhor os dados se existirem
-                     details = "\n".join([f"  {k}: {v}" for k,v in result.data.items()])
-                     msg += f"\n\nDetalhes:\n{details}"
+                    try:
+                        # Chama o __str__ da instância DiscountResponse para obter os detalhes formatados
+                        details_str = str(result.data) 
+                        
+                        # Adiciona os detalhes formatados à mensagem principal (se não for vazio)
+                        if details_str: 
+                            msg += f"\n\n{details_str}" 
+                            
+                    except Exception as e:
+                        logger.warning(f"Erro ao formatar detalhes da resposta via __str__: {e}")
 
                 logger.success(msg)
                 success_box = CustomMessageBox(
