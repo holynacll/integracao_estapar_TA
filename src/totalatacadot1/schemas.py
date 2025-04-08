@@ -11,7 +11,7 @@ from totalatacadot1.enums import CommandType, ResponseStatus
 class DiscountRequest:
     cmd_term_id: int  # numcaixa
     cmd_card_id: str  # código de barras do cartão
-    cmd_op_value: int  # em centavos
+    cmd_op_value: int  # em reais
     cmd_signature: str = "04558054000173"  # Fiscal Document CNPJ
     cmd_op_seq_no: int = 0  # numcupom / get next number / zero por enquanto
     cmd_ruf_0: int = 0xFFFFFFFF
@@ -47,8 +47,8 @@ class DiscountRequest:
 
     def validate(self):
         """Validação consolidada como no C#"""
-        if self.cmd_op_value <= 0:
-            raise ValueError("Valor da compra deve ser maior que zero")
+        if self.cmd_op_value < 40:
+            raise ValueError("Valor da compra deve ser maior ou igual que R$ 40,00")
         if self.cmd_term_id <= 0:
             raise ValueError("TerminalId inválido")
         if not self.cmd_card_id or self.cmd_card_id.strip() == "":
@@ -65,7 +65,7 @@ class DiscountRequest:
             "<I64sIIIIIIII",
             self.cmd_term_id,  # 4 bytes
             self.cmd_card_id.encode("ascii").ljust(64, b"\x00"),  # 64 bytes
-            self.cmd_op_value,  # 4 bytes
+            int(self.cmd_op_value * 100),  # 4 bytes
             self.cmd_op_seq_no,  # 4 bytes
             self.cmd_ruf_0,  # 4 bytes
             self.cmd_ruf_1,  # 4 bytes
@@ -108,18 +108,18 @@ class DiscountResponse:
         lines = ["Detalhes Adicionais:"] # Cabeçalho para os detalhes
 
         # Formata a data/hora de entrada (se disponível)
-        if self.entry_timestamp is not None:
-            try:
-                dt_object = datetime.fromtimestamp(self.entry_timestamp, UTC)
-                # Formato mais comum no Brasil: DD/MM/AAAA HH:MM:SS
-                formatted_time = dt_object.strftime("%d/%m/%Y %H:%M:%S") 
-                lines.append(f"    Data/Hora de Entrada: {formatted_time}")
-            except (TypeError, ValueError):
-                 # Caso o timestamp seja inválido por algum motivo
-                 lines.append(f"    Data/Hora de Entrada: (timestamp inválido: {self.entry_timestamp})")
-        else:
-            # Se não houver timestamp na resposta
-            lines.append("    Data/Hora de Entrada: Não informada")
+        # if self.entry_timestamp is not None:
+        #     try:
+        #         dt_object = datetime.fromtimestamp(self.entry_timestamp, UTC)
+        #         # Formato mais comum no Brasil: DD/MM/AAAA HH:MM:SS
+        #         formatted_time = dt_object.strftime("%d/%m/%Y %H:%M:%S") 
+        #         lines.append(f"    Data/Hora de Entrada: {formatted_time}")
+        #     except (TypeError, ValueError):
+        #          # Caso o timestamp seja inválido por algum motivo
+        #          lines.append(f"    Data/Hora de Entrada: (timestamp inválido: {self.entry_timestamp})")
+        # else:
+        #     # Se não houver timestamp na resposta
+        #     lines.append("    Data/Hora de Entrada: Não informada")
 
         # Formata o tipo de veículo (se disponível)
         vehicle_display = self.vehicle_type if self.vehicle_type is not None else "Não informado"

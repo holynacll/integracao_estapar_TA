@@ -128,8 +128,8 @@ class MainWidget(QWidget):
         self.operation_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
 
         self.operation_combo = QComboBox()
-        self.operation_combo.addItem("Consulta", CommandType.CONSULT)
         self.operation_combo.addItem("Validação", CommandType.VALIDATION)
+        self.operation_combo.addItem("Consulta", CommandType.CONSULT)
         self.operation_combo.setFixedHeight(50)
         self.operation_combo.setFont(QFont("Arial", 14)) # Definir fonte base
 
@@ -341,9 +341,23 @@ class MainWidget(QWidget):
             discount_request = DiscountRequest(
                 cmd_card_id=ticket_code,
                 cmd_term_id=pdv_pedido.num_caixa,
-                cmd_op_value=int(pdv_pedido.vl_total * 100),
+                cmd_op_value=pdv_pedido.vl_total,
                 cmd_type=operation_type,
             )
+
+            # Validando se o ticket é válido
+            try:
+                discount_request.validate()  # 👈 Valida os campos
+            except ValueError as e:
+                logger.error(f"Erro de validação: {e}")
+                error_box = CustomMessageBox(
+                    "Erro de Validação",
+                    f"Dados inválidos:\n{str(e)}",
+                    self.error_icon_path,
+                    self,
+                )
+                error_box.exec()
+                return  # Interrompe o processamento
 
             logger.debug("Criando instancia do servico de integração com a estapar")
             service = EstaparIntegrationService(IP, PORT)
@@ -354,17 +368,17 @@ class MainWidget(QWidget):
             if result.success:
                 success_title = "Consulta Realizada" if operation_type == CommandType.CONSULT else "Validação Realizada"
                 msg = f"Operação realizada com sucesso!\nAPI Estapar: {result.message}"
-                if result.data:
-                    try:
-                        # Chama o __str__ da instância DiscountResponse para obter os detalhes formatados
-                        details_str = str(result.data) 
+                # if result.data:
+                #     try:
+                #         # Chama o __str__ da instância DiscountResponse para obter os detalhes formatados
+                #         details_str = str(result.data) 
                         
-                        # Adiciona os detalhes formatados à mensagem principal (se não for vazio)
-                        if details_str: 
-                            msg += f"\n\n{details_str}" 
+                #         # Adiciona os detalhes formatados à mensagem principal (se não for vazio)
+                #         if details_str: 
+                #             msg += f"\n\n{details_str}" 
                             
-                    except Exception as e:
-                        logger.warning(f"Erro ao formatar detalhes da resposta via __str__: {e}")
+                #     except Exception as e:
+                #         logger.warning(f"Erro ao formatar detalhes da resposta via __str__: {e}")
 
                 logger.success(msg)
                 success_box = CustomMessageBox(

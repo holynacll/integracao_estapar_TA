@@ -28,6 +28,7 @@ def safe_decode(byte_string: bytes, encoding="latin-1") -> str:
 class EstaparIntegrationService:
     """Serviço de integração com a API da Estapar"""
 
+    CONNECTION_TIMEOUT = 3 # seconds
     DEFAULT_TIMEOUT = 10  # segundos
     BUFFER_SIZE = 4096
 
@@ -95,14 +96,18 @@ class EstaparIntegrationService:
         sock = None  # Define sock outside try for finally block
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(self.DEFAULT_TIMEOUT)
+            timeout = self.CONNECTION_TIMEOUT
+            sock.settimeout(timeout)
 
             # Conecta ao servidor
             self._connect(sock)
+            logger.debug(f"Conectado ao servidor {self.server_ip}:{self.server_port}")
 
             # Serializa e envia a mensagem
             message = request_data.serialize()
             self._log_message(message, "Enviando requisição")
+            timeout = self.DEFAULT_TIMEOUT
+            sock.settimeout(timeout) # Set timeout for sending
             sock.sendall(message)
 
             # Lê e processa a resposta completa (header + data)
@@ -120,20 +125,20 @@ class EstaparIntegrationService:
             return self._parse_response(response_payload, request_data.cmd_seq_no)
 
         except socket.timeout:
-            error_msg = f"Timeout ({self.DEFAULT_TIMEOUT}s) na comunicação com o servidor {self.server_ip}:{self.server_port}"
+            error_msg = f"Timeout ({timeout}s) na comunicação com o servidor."
             logger.error(error_msg)
             return ResponseReturn(False, error_msg)
 
         except ConnectionRefusedError:
             error_msg = (
-                f"Conexão recusada pelo servidor {self.server_ip}:{self.server_port}"
+                "Conexão recusada pelo servidor."
             )
             logger.error(error_msg)
             return ResponseReturn(False, error_msg)
 
         except socket.gaierror:  # getaddrinfo error (DNS lookup failure)
             error_msg = (
-                f"Não foi possível resolver o endereço do servidor: {self.server_ip}"
+                "Não foi possível resolver o endereço do servidor"
             )
             logger.error(error_msg)
             return ResponseReturn(False, error_msg)
@@ -216,7 +221,7 @@ class EstaparIntegrationService:
 
         except socket.timeout:
             logger.error(
-                f"Timeout ao ler resposta do servidor {self.server_ip}:{self.server_port}."
+                "Timeout ao ler resposta do servidor."
             )
             return None
         except struct.error as e:
