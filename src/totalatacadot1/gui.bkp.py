@@ -2,7 +2,7 @@
 from datetime import datetime
 
 from loguru import logger
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, Slot
 from PySide6.QtWidgets import (
     QApplication,
     QLabel,
@@ -11,14 +11,16 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QMainWindow,
     QLineEdit,
+    QMessageBox,
     QSpacerItem,
     QSizePolicy,
     QComboBox,
     QFrame,
     QGraphicsOpacityEffect, # Importar QGraphicsOpacityEffect
-    QDoubleSpinBox,  # Para o campo de valor
 )
-from PySide6.QtGui import QIcon, QFont, QPixmap, QPalette, QColor # Importar QColor
+from PySide6.QtGui import QIcon, QFont, QPixmap, QPainter, QBrush, QPalette, QColor # Importar QColor
+# from qt_material import apply_stylesheet # Manter comentado por enquanto
+# from dotenv import load_dotenv
 
 from totalatacadot1.enums import CommandType
 from totalatacadot1.estapar_integration_service import EstaparIntegrationService
@@ -119,64 +121,26 @@ class MainWidget(QWidget):
         self.title = QLabel("Integração Estacionamento")
         self.title.setObjectName("titleLabel") # Definir nome para estilo específico se necessário
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title.setFont(QFont("Arial", 32, QFont.Weight.Bold))
+        self.title.setFont(QFont("Arial", 36, QFont.Weight.Bold))
 
         self.operation_label = QLabel("Tipo de Operação:")
         self.operation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.operation_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        self.operation_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
 
         self.operation_combo = QComboBox()
         self.operation_combo.addItem("Validação", CommandType.VALIDATION)
         self.operation_combo.addItem("Consulta", CommandType.CONSULT)
-        self.operation_combo.addItem("Validação Manual", "MANUAL_VALIDATION")  # Nova opção
-        self.operation_combo.setFixedHeight(40)
-        self.operation_combo.setFont(QFont("Arial", 12)) # Definir fonte base
-        self.operation_combo.currentTextChanged.connect(self.on_operation_changed)  # Conectar sinal
+        self.operation_combo.setFixedHeight(50)
+        self.operation_combo.setFont(QFont("Arial", 14)) # Definir fonte base
 
         self.label = QLabel("Ticket do Cliente:")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        self.label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
 
         self.edit = QLineEdit()
         self.edit.setPlaceholderText("Escreva o código aqui")
-        self.edit.setFixedHeight(40)
-        self.edit.setFont(QFont("Arial", 12)) # Definir fonte base
-
-        # --- Campos específicos para Validação Manual (inicialmente ocultos) ---
-        self.manual_fields_frame = QFrame()
-        manual_fields_layout = QVBoxLayout(self.manual_fields_frame)
-        manual_fields_layout.setSpacing(10)
-
-        # Campo Número do Caixa
-        self.num_caixa = QLabel("Número do Caixa:")
-        self.num_caixa.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.num_caixa.setFont(QFont("Arial", 16, QFont.Weight.Bold))
-        
-        self.num_caixa_edit = QLineEdit()
-        self.num_caixa_edit.setPlaceholderText("Digite o número do caixa")
-        self.num_caixa_edit.setFixedHeight(40)
-        self.num_caixa_edit.setFont(QFont("Arial", 12))
-
-        # Campo Valor Total
-        self.valor_label = QLabel("Valor Total (R$):")
-        self.valor_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.valor_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
-        
-        self.valor_edit = QDoubleSpinBox()
-        self.valor_edit.setRange(0.01, 999999.99)
-        self.valor_edit.setDecimals(2)
-        self.valor_edit.setPrefix("R$ ")
-        self.valor_edit.setFixedHeight(40)
-        self.valor_edit.setFont(QFont("Arial", 12))
-
-        # Adicionar campos ao frame
-        manual_fields_layout.addWidget(self.num_caixa)
-        manual_fields_layout.addWidget(self.num_caixa_edit)
-        manual_fields_layout.addWidget(self.valor_label)
-        manual_fields_layout.addWidget(self.valor_edit)
-
-        # Inicialmente ocultar os campos manuais
-        self.manual_fields_frame.hide()
+        self.edit.setFixedHeight(50)
+        self.edit.setFont(QFont("Arial", 14)) # Definir fonte base
 
         self.button = QPushButton("Processar")
         self.button.setFixedHeight(50)
@@ -197,29 +161,12 @@ class MainWidget(QWidget):
         main_layout.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)) # Espaço menor
         main_layout.addWidget(self.label)
         main_layout.addWidget(self.edit)
-        main_layout.addWidget(self.manual_fields_frame)  # Adicionar o frame dos campos manuais
         main_layout.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)) # Espaço menor
         main_layout.addWidget(self.button)
         main_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
         main_layout.addWidget(self.footer_label)
 
         # Não precisa mais de self.setLayout(main_layout), pois foi passado no construtor do QVBoxLayout
-
-    @Slot()
-    def on_operation_changed(self):
-        """Mostra/oculta campos baseado na operação selecionada."""
-        operation_type = self.operation_combo.currentData()
-        
-        if operation_type == "MANUAL_VALIDATION":
-            self.manual_fields_frame.show()
-            # Ajustar o texto do label principal
-            self.label.setText("Ticket do Cliente:")
-        else:
-            self.manual_fields_frame.hide()
-            self.label.setText("Ticket do Cliente:")
-        
-        # Forçar o layout a se recalcular
-        self.updateGeometry()
 
     def apply_dynamic_styles(self):
         """Aplica estilos aos widgets com base no tema detectado."""
@@ -312,21 +259,6 @@ class MainWidget(QWidget):
                 selection-color: {button_text}; /* Texto do item selecionado */
             }}
 
-            QTimeEdit, QDoubleSpinBox {{
-                background-color: {input_bg};
-                color: {input_text};
-                border: 1px solid {border_color};
-                border-radius: 8px;
-                padding: 8px;
-                font-size: 14px;
-            }}
-            QTimeEdit:focus, QDoubleSpinBox:focus {{
-                border: 1.5px solid {border_focus_color};
-            }}
-            QTimeEdit:hover, QDoubleSpinBox:hover {{
-                border: 1px solid {border_focus_color};
-            }}
-
             QPushButton {{
                 font-size: 14px; /* Reduzido para consistência */
                 font-weight: bold;
@@ -371,6 +303,7 @@ class MainWidget(QWidget):
 
     @Slot()
     def process_ticket(self):
+        # ... (seu código de processamento de ticket permanece o mesmo) ...
         try:
             logger.debug("Iniciando processamento de ticket")
             ticket_code = self.edit.text().strip()
@@ -380,6 +313,7 @@ class MainWidget(QWidget):
 
             if not ticket_code:
                 logger.warning("Ticket vazio recebido")
+                # Usar CustomMessageBox (assumindo que ele também respeita o tema ou é neutro)
                 error_box = CustomMessageBox(
                     "Erro",
                     "Código inválido!\nPor favor, verifique o código e tente novamente.\n",
@@ -389,55 +323,27 @@ class MainWidget(QWidget):
                 error_box.exec()
                 return
 
-            # Lógica específica para Validação Manual
-            if operation_type == "MANUAL_VALIDATION":
-                # Validar campos manuais
-                num_caixa = self.num_caixa_edit.text().strip()
-                valor_total = self.valor_edit.value()
+            logger.debug("Consultando último pedido PDV")
+            pdv_pedido = get_last_pdv_pedido()
 
-                if not num_caixa:
-                    error_box = CustomMessageBox(
-                        "Erro",
-                        "Por favor, preencha todos os campos obrigatórios para Validação Manual.",
-                        self.error_icon_path,
-                        self,
-                    )
-                    error_box.exec()
-                    return
-
-                logger.debug(f"Validação Manual - Número do Caixa: {num_caixa}, Valor: {valor_total}")
-
-                # Criar requisição com dados manuais
-                discount_request = DiscountRequest(
-                    cmd_card_id=ticket_code,
-                    cmd_term_id=num_caixa,  # Usando número do caixa como terminal
-                    cmd_op_value=valor_total,
-                    cmd_type=CommandType.VALIDATION,  # Pode ajustar conforme necessário
+            if not pdv_pedido:
+                logger.error("Nenhum pedido PDV encontrado")
+                error_box = CustomMessageBox(
+                    "Erro",
+                    "Não foi possível encontrar o ticket do cliente.\nPor favor, verifique o código e tente novamente.\n",
+                    self.error_icon_path,
+                    self,
                 )
+                error_box.exec()
+                return
 
-            else:
-                # Lógica original para Validação e Consulta automáticas
-                logger.debug("Consultando último pedido PDV")
-                pdv_pedido = get_last_pdv_pedido()
-
-                if not pdv_pedido:
-                    logger.error("Nenhum pedido PDV encontrado")
-                    error_box = CustomMessageBox(
-                        "Erro",
-                        "Não foi possível encontrar o ticket do cliente.\nPor favor, verifique o código e tente novamente.\n",
-                        self.error_icon_path,
-                        self,
-                    )
-                    error_box.exec()
-                    return
-
-                logger.debug("Criando requisição")
-                discount_request = DiscountRequest(
-                    cmd_card_id=ticket_code,
-                    cmd_term_id=pdv_pedido.num_caixa,
-                    cmd_op_value=pdv_pedido.vl_total,
-                    cmd_type=operation_type,
-                )
+            logger.debug("Criando requisição")
+            discount_request = DiscountRequest(
+                cmd_card_id=ticket_code,
+                cmd_term_id=pdv_pedido.num_caixa,
+                cmd_op_value=pdv_pedido.vl_total,
+                cmd_type=operation_type,
+            )
 
             # Validando se o ticket é válido
             try:
@@ -459,16 +365,20 @@ class MainWidget(QWidget):
             logger.debug("Enviando requisição para API")
             result = service.create_discount(discount_request)
             logger.debug(f"Resposta da API: {result}")
-            
             if result.success:
-                if operation_type == "MANUAL_VALIDATION":
-                    success_title = "Validação Manual Realizada"
-                elif operation_type == CommandType.CONSULT:
-                    success_title = "Consulta Realizada"
-                else:
-                    success_title = "Validação Realizada"
-                    
+                success_title = "Consulta Realizada" if operation_type == CommandType.CONSULT else "Validação Realizada"
                 msg = f"Operação realizada com sucesso!\nAPI Estapar: {result.message}"
+                # if result.data:
+                #     try:
+                #         # Chama o __str__ da instância DiscountResponse para obter os detalhes formatados
+                #         details_str = str(result.data) 
+                        
+                #         # Adiciona os detalhes formatados à mensagem principal (se não for vazio)
+                #         if details_str: 
+                #             msg += f"\n\n{details_str}" 
+                            
+                #     except Exception as e:
+                #         logger.warning(f"Erro ao formatar detalhes da resposta via __str__: {e}")
 
                 logger.success(msg)
                 success_box = CustomMessageBox(
@@ -478,13 +388,8 @@ class MainWidget(QWidget):
                     self,
                 )
                 success_box.exec()
-                
-                # Limpar campos após sucesso
-                if operation_type in [CommandType.VALIDATION, "MANUAL_VALIDATION"]:
+                if operation_type == CommandType.VALIDATION:
                     self.edit.clear()
-                    if operation_type == "MANUAL_VALIDATION":
-                        self.num_caixa_edit.clear()
-                        # self.valor_edit.setValue(0.01)
             else:
                 logger.error(f"Erro na API: {result.message}")
                 error_box = CustomMessageBox(
