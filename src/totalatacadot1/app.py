@@ -24,12 +24,14 @@ def background_task(controller: AppController):
     while True:
         sleep(5)
 
-        if controller.is_gui_open():
-            logger.info("A GUI já está aberta. Aguardando liberação...")
-            continue
+        # if controller.is_gui_open():
+        #     logger.info("A GUI já está aberta. Aguardando liberação...")
+        #     continue
         last_pdv_pedido: PCPEDCECF = get_last_pdv_pedido()
         if last_pdv_pedido is None:
             continue
+
+        controller.emit_actual_valor_update(last_pdv_pedido.vl_total)
 
         pdv_control_item = get_pdv_control_item_by_num_ped_ecf(
             last_pdv_pedido.num_ped_ecf

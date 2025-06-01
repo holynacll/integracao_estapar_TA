@@ -76,6 +76,14 @@ class MainWindow(QMainWindow):
 
         self.main_widget = MainWidget()
         self.setCentralWidget(self.main_widget)
+    
+    @Slot(float)
+    def update_actual_valor(self, valor):
+        """Atualiza especificamente o actual_valor na interface."""
+        self.main_widget.actual_valor.setValue(valor)
+        # self.actual_valor.setValue(valor)
+        # self.valor_label.setText(f"Valor Atual: R$ {valor:.2f}")
+        print(f"Actual valor atualizado: {valor}")
 
     def closeEvent(self, event):
         event.ignore()
@@ -136,8 +144,8 @@ class MainWidget(QWidget):
         self.operation_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
 
         self.operation_combo = QComboBox()
-        self.operation_combo.addItem("Validação", CommandType.VALIDATION)
-        self.operation_combo.addItem("Consulta", CommandType.CONSULT)
+        self.operation_combo.addItem("Validação Automática", CommandType.VALIDATION)
+        # self.operation_combo.addItem("Consulta", CommandType.CONSULT)
         self.operation_combo.addItem("Validação Manual", "MANUAL_VALIDATION")
         self.operation_combo.setFixedHeight(40)
         self.operation_combo.setFont(QFont("Arial", 12))
@@ -152,6 +160,28 @@ class MainWidget(QWidget):
         self.edit.setFixedHeight(40)
         self.edit.setFont(QFont("Arial", 12))
         self.edit.returnPressed.connect(self.trigger_button_click)
+        
+        self.automatic_fields_frame = QFrame()
+        automatic_fields_layout = QVBoxLayout(self.automatic_fields_frame)
+        automatic_fields_layout.setSpacing(15)
+        automatic_fields_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.actual_valor_label = QLabel("Valor Total (R$):")
+        self.actual_valor_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.actual_valor_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        self.actual_valor_label.setContentsMargins(0, 15, 0, 0)
+        
+        self.actual_valor = QDoubleSpinBox()
+        self.actual_valor.setReadOnly(True)
+        self.actual_valor.setRange(0.01, 999999.99)
+        self.actual_valor.setDecimals(2)
+        self.actual_valor.setPrefix("R$ ")
+        self.actual_valor.setFixedHeight(40)
+        self.actual_valor.setFont(QFont("Arial", 12))
+        self.actual_valor.lineEdit().returnPressed.connect(self.trigger_button_click)
+        
+        automatic_fields_layout.addWidget(self.actual_valor_label)
+        automatic_fields_layout.addWidget(self.actual_valor)
 
         # --- Campos manuais ---
         self.manual_fields_frame = QFrame()
@@ -159,16 +189,16 @@ class MainWidget(QWidget):
         manual_fields_layout.setSpacing(15)
         manual_fields_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.num_caixa = QLabel("Número do Caixa:")
-        self.num_caixa.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.num_caixa.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        self.num_caixa.setContentsMargins(0, 15, 0, 0)
+        self.num_cupom = QLabel("Número do Cupom:")
+        self.num_cupom.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.num_cupom.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        self.num_cupom.setContentsMargins(0, 15, 0, 0)
 
-        self.num_caixa_edit = QLineEdit()
-        self.num_caixa_edit.setPlaceholderText("Digite o número do caixa")
-        self.num_caixa_edit.setFixedHeight(40)
-        self.num_caixa_edit.setFont(QFont("Arial", 12))
-        self.num_caixa_edit.returnPressed.connect(self.trigger_button_click)
+        self.num_cupom_edit = QLineEdit()
+        self.num_cupom_edit.setPlaceholderText("Digite o número do cupom")
+        self.num_cupom_edit.setFixedHeight(40)
+        self.num_cupom_edit.setFont(QFont("Arial", 12))
+        self.num_cupom_edit.returnPressed.connect(self.trigger_button_click)
 
         self.valor_label = QLabel("Valor Total (R$):")
         self.valor_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -183,8 +213,8 @@ class MainWidget(QWidget):
         self.valor_edit.setFont(QFont("Arial", 12))
         self.valor_edit.lineEdit().returnPressed.connect(self.trigger_button_click)
 
-        manual_fields_layout.addWidget(self.num_caixa)
-        manual_fields_layout.addWidget(self.num_caixa_edit)
+        manual_fields_layout.addWidget(self.num_cupom)
+        manual_fields_layout.addWidget(self.num_cupom_edit)
         manual_fields_layout.addWidget(self.valor_label)
         manual_fields_layout.addWidget(self.valor_edit)
         self.manual_fields_frame.hide()
@@ -194,6 +224,7 @@ class MainWidget(QWidget):
         self.button.clicked.connect(self.process_ticket)
         self.button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.button.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        self.button.pressed.connect(self.process_ticket)
 
         self.footer_label = QLabel(f"© {datetime.now().year} Total Atacado")
         self.footer_label.setObjectName("footerLabel")
@@ -208,6 +239,7 @@ class MainWidget(QWidget):
         container_layout.addSpacing(15)
         container_layout.addWidget(self.label)
         container_layout.addWidget(self.edit)
+        container_layout.addWidget(self.automatic_fields_frame)
         container_layout.addWidget(self.manual_fields_frame)
         container_layout.addSpacing(15)
         container_layout.addWidget(self.button)
@@ -235,6 +267,11 @@ class MainWidget(QWidget):
         button_hover_start = "#5AAFFF" if dark else "#0056b3"
         button_hover_end = "#2C7CEF" if dark else "#003d80"
         button_text = "#FFFFFF"
+        
+        # Cores para campos readonly
+        readonly_bg = "#2A2A2A" if dark else "#F5F5F5"
+        readonly_text = "#808080" if dark else "#666666"
+        readonly_border = "#444444" if dark else "#CCCCCC"
         
         # Cor do container
         container_bg = "rgba(40, 40, 40, 0.8)" if dark else "rgba(255, 255, 255, 0.9)"
@@ -312,6 +349,19 @@ class MainWidget(QWidget):
             QDoubleSpinBox:hover {{
                 border: 1px solid {border_focus_color};
             }}
+            
+            /* Estilo específico para QDoubleSpinBox readonly */
+            QDoubleSpinBox:read-only {{
+                background-color: {readonly_bg};
+                color: {readonly_text};
+                border: 1px solid {readonly_border};
+            }}
+            QDoubleSpinBox:read-only:hover {{
+                border: 1px solid {readonly_border};
+            }}
+            QDoubleSpinBox:read-only:focus {{
+                border: 1px solid {readonly_border};
+            }}
 
             QPushButton {{
                 font-size: 14px;
@@ -354,10 +404,12 @@ class MainWidget(QWidget):
         
         if operation_type == "MANUAL_VALIDATION":
             self.manual_fields_frame.show()
+            self.automatic_fields_frame.hide()
             # Ajustar o texto do label principal
             self.label.setText("Ticket do Cliente:")
         else:
             self.manual_fields_frame.hide()
+            self.automatic_fields_frame.show()
             self.label.setText("Ticket do Cliente:")
         
         # Forçar o layout a se recalcular
@@ -396,10 +448,10 @@ class MainWidget(QWidget):
             # Lógica específica para Validação Manual
             if operation_type == "MANUAL_VALIDATION":
                 # Validar campos manuais
-                num_caixa = self.num_caixa_edit.text().strip()
+                num_cupom = self.num_cupom_edit.text().strip()
                 valor_total = self.valor_edit.value()
 
-                if not num_caixa or not valor_total:
+                if not num_cupom or not valor_total:
                     error_box = CustomMessageBox(
                         "Erro",
                         "Por favor, preencha todos os campos obrigatórios para Validação Manual.",
@@ -409,22 +461,22 @@ class MainWidget(QWidget):
                     error_box.exec()
                     return
             
-                if not num_caixa.isdigit():
+                if not num_cupom.isdigit():
                     error_box = CustomMessageBox(
                         "Erro",
-                        "O número do caixa deve ser um número inteiro.",
+                        "O número do cupom deve ser um número inteiro.",
                         self.error_icon_path,
                         self,
                     )
                     error_box.exec()
                     return
 
-                logger.debug(f"Validação Manual - Número do Caixa: {num_caixa}, Valor: {valor_total}")
+                logger.debug(f"Validação Manual - Número do Cupom: {num_cupom}, Valor: {valor_total}")
 
                 # Criar requisição com dados manuais
                 discount_request = DiscountRequest(
                     cmd_card_id=ticket_code,
-                    cmd_term_id=int(num_caixa),  # Usando número do caixa como terminal
+                    cmd_term_id=int(num_cupom),  # Usando número do cupom como terminal
                     cmd_op_value=valor_total,
                     cmd_type=CommandType.VALIDATION,  # Pode ajustar conforme necessário
                 )
@@ -448,7 +500,7 @@ class MainWidget(QWidget):
                 logger.debug("Criando requisição")
                 discount_request = DiscountRequest(
                     cmd_card_id=ticket_code,
-                    cmd_term_id=pdv_pedido.num_caixa,
+                    cmd_term_id=pdv_pedido.num_ped_ecf, # Num cupom
                     cmd_op_value=pdv_pedido.vl_total,
                     cmd_type=operation_type,
                 )
@@ -499,7 +551,7 @@ class MainWidget(QWidget):
                 if operation_type in [CommandType.VALIDATION, "MANUAL_VALIDATION"]:
                     self.edit.clear()
                     if operation_type == "MANUAL_VALIDATION":
-                        self.num_caixa_edit.clear()
+                        self.num_cupom_edit.clear()
                         # self.valor_edit.setValue(0.01)
             else:
                 logger.error(f"Erro na API: {result.message}")

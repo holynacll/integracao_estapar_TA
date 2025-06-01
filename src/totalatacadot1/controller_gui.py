@@ -11,6 +11,8 @@ class AppController(QObject):
     request_show_gui = Signal()
     request_hide_gui = Signal()
     request_shutdown = Signal()
+    
+    actual_valor_updated = Signal(float)  # Sinal específico para actual_valor
 
     def __init__(self):
         super().__init__()
@@ -21,6 +23,9 @@ class AppController(QObject):
         self.request_show_gui.connect(self._show_gui)
         self.request_hide_gui.connect(self._hide_gui)
         self.request_shutdown.connect(self._shutdown)
+        
+        # Conecta sinal do valor atual do ultimo pedido no Oracle DB
+        self.actual_valor_updated.connect(self.window.update_actual_valor)
 
         self.setup_tray_icon()
 
@@ -54,6 +59,12 @@ class AppController(QObject):
                 self.request_hide_gui.emit()
             else:
                 self.request_show_gui.emit()
+    
+    @Slot()
+    def emit_actual_valor_update(self, valor):
+        """Interface pública para emitir atualização do actual_valor (thread-safe)."""
+        self.actual_valor_updated.emit(valor)
+
 
     @Slot()
     def show_gui(self):
@@ -74,7 +85,8 @@ class AppController(QObject):
     @Slot()
     def _show_gui(self):
         """Mostra a janela (deve rodar no thread principal)."""
-        self.window.showFullScreen()
+        # self.window.showFullScreen()
+        self.window.showMaximized()
         self.window.activateWindow()
 
     @Slot()
