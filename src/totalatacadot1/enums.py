@@ -6,7 +6,6 @@ class CommandType(IntEnum):
 
     CONSULT = 0x0000000F  # 15 - Consulta
     VALIDATION = 0x00000010  # 16 - Validação
-    MANUAL_VALIDATION = 0x00000011  # 17 - Validação Manual
 
 
 class ResponseStatus(Enum):

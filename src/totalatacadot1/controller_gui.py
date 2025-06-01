@@ -74,7 +74,7 @@ class AppController(QObject):
     @Slot()
     def _show_gui(self):
         """Mostra a janela (deve rodar no thread principal)."""
-        self.window.show()
+        self.window.showFullScreen()
         self.window.activateWindow()
 
     @Slot()

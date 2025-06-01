@@ -11,7 +11,7 @@ from totalatacadot1.enums import CommandType, ResponseStatus
 class DiscountRequest:
     cmd_term_id: int  # numcaixa
     cmd_card_id: str  # código de barras do cartão
-    cmd_op_value: int  # em reais
+    cmd_op_value: float  # em reais
     cmd_signature: str = "04558054000173"  # Fiscal Document CNPJ
     cmd_op_seq_no: int = 0  # numcupom / get next number / zero por enquanto
     cmd_ruf_0: int = 0xFFFFFFFF

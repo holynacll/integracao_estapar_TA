@@ -2,7 +2,7 @@
 from datetime import datetime
 
 from loguru import logger
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import Qt, Slot, QTimer
 from PySide6.QtWidgets import (
     QApplication,
     QLabel,
@@ -97,70 +97,83 @@ class MainWidget(QWidget):
         self.init_ui()
         self.apply_dynamic_styles() # Aplica os estilos após a criação dos widgets
 
+    # Substitua seu método init_ui() por este:
+
     def init_ui(self):
         # --- Background Setup ---
         self.background_label = QLabel(self)
         pixmap = QPixmap(self.background_image_path)
         self.background_label.setPixmap(pixmap)
         self.background_label.setScaledContents(True)
-        # Cria o efeito de opacidade (será configurado em apply_dynamic_styles)
         self.opacity_effect = QGraphicsOpacityEffect(self)
         self.background_label.setGraphicsEffect(self.opacity_effect)
-        # Garante que o label de fundo fique atrás dos outros widgets
         self.background_label.lower()
 
-        # --- Layout Principal ---
+        # --- Layout Principal (fullscreen) ---
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(50, 50, 50, 50) # Adiciona margens
-        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # --- Container Central ---
+        self.container = QWidget()
+        self.container.setObjectName("formContainer")
+        self.container.setFixedWidth(600)  # Largura fixa do formulário
+        self.container.setMaximumHeight(700)  # Altura máxima para não ficar muito alto
+        
+        # Layout do container
+        container_layout = QVBoxLayout(self.container)
+        container_layout.setContentsMargins(40, 30, 40, 30)
+        container_layout.setSpacing(15)
 
-        # --- Widgets ---
+        # --- Widgets (mesmo conteúdo, diferente organização) ---
         self.title = QLabel("Integração Estacionamento")
-        self.title.setObjectName("titleLabel") # Definir nome para estilo específico se necessário
+        self.title.setObjectName("Total Atacado - Integração Estacionamento")
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title.setFont(QFont("Arial", 32, QFont.Weight.Bold))
+        self.title.setFont(QFont("Arial", 28, QFont.Weight.Bold))  # Menor para caber melhor
 
         self.operation_label = QLabel("Tipo de Operação:")
         self.operation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.operation_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        self.operation_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
 
         self.operation_combo = QComboBox()
         self.operation_combo.addItem("Validação", CommandType.VALIDATION)
         self.operation_combo.addItem("Consulta", CommandType.CONSULT)
-        self.operation_combo.addItem("Validação Manual", "MANUAL_VALIDATION")  # Nova opção
+        self.operation_combo.addItem("Validação Manual", "MANUAL_VALIDATION")
         self.operation_combo.setFixedHeight(40)
-        self.operation_combo.setFont(QFont("Arial", 12)) # Definir fonte base
-        self.operation_combo.currentTextChanged.connect(self.on_operation_changed)  # Conectar sinal
+        self.operation_combo.setFont(QFont("Arial", 12))
+        self.operation_combo.currentTextChanged.connect(self.on_operation_changed)
 
         self.label = QLabel("Ticket do Cliente:")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        self.label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
 
         self.edit = QLineEdit()
         self.edit.setPlaceholderText("Escreva o código aqui")
         self.edit.setFixedHeight(40)
-        self.edit.setFont(QFont("Arial", 12)) # Definir fonte base
+        self.edit.setFont(QFont("Arial", 12))
+        self.edit.returnPressed.connect(self.trigger_button_click)
 
-        # --- Campos específicos para Validação Manual (inicialmente ocultos) ---
+        # --- Campos manuais ---
         self.manual_fields_frame = QFrame()
         manual_fields_layout = QVBoxLayout(self.manual_fields_frame)
-        manual_fields_layout.setSpacing(10)
+        manual_fields_layout.setSpacing(15)
+        manual_fields_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Campo Número do Caixa
         self.num_caixa = QLabel("Número do Caixa:")
         self.num_caixa.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.num_caixa.setFont(QFont("Arial", 16, QFont.Weight.Bold))
-        
+        self.num_caixa.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        self.num_caixa.setContentsMargins(0, 15, 0, 0)
+
         self.num_caixa_edit = QLineEdit()
         self.num_caixa_edit.setPlaceholderText("Digite o número do caixa")
         self.num_caixa_edit.setFixedHeight(40)
         self.num_caixa_edit.setFont(QFont("Arial", 12))
+        self.num_caixa_edit.returnPressed.connect(self.trigger_button_click)
 
-        # Campo Valor Total
         self.valor_label = QLabel("Valor Total (R$):")
         self.valor_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.valor_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        self.valor_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        self.valor_label.setContentsMargins(0, 15, 0, 0)
         
         self.valor_edit = QDoubleSpinBox()
         self.valor_edit.setRange(0.01, 999999.99)
@@ -168,90 +181,76 @@ class MainWidget(QWidget):
         self.valor_edit.setPrefix("R$ ")
         self.valor_edit.setFixedHeight(40)
         self.valor_edit.setFont(QFont("Arial", 12))
+        self.valor_edit.lineEdit().returnPressed.connect(self.trigger_button_click)
 
-        # Adicionar campos ao frame
         manual_fields_layout.addWidget(self.num_caixa)
         manual_fields_layout.addWidget(self.num_caixa_edit)
         manual_fields_layout.addWidget(self.valor_label)
         manual_fields_layout.addWidget(self.valor_edit)
-
-        # Inicialmente ocultar os campos manuais
         self.manual_fields_frame.hide()
 
         self.button = QPushButton("Processar")
         self.button.setFixedHeight(50)
         self.button.clicked.connect(self.process_ticket)
         self.button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.button.setFont(QFont("Arial", 14, QFont.Weight.Bold)) # Definir fonte base
+        self.button.setFont(QFont("Arial", 14, QFont.Weight.Bold))
 
         self.footer_label = QLabel(f"© {datetime.now().year} Total Atacado")
         self.footer_label.setObjectName("footerLabel")
         self.footer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.footer_label.setFont(QFont("Arial", 12, QFont.Weight.DemiBold))
+        self.footer_label.setFont(QFont("Arial", 10, QFont.Weight.DemiBold))
 
-        # --- Adicionando Widgets ao Layout ---
-        main_layout.addWidget(self.title)
-        main_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-        main_layout.addWidget(self.operation_label)
-        main_layout.addWidget(self.operation_combo)
-        main_layout.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)) # Espaço menor
-        main_layout.addWidget(self.label)
-        main_layout.addWidget(self.edit)
-        main_layout.addWidget(self.manual_fields_frame)  # Adicionar o frame dos campos manuais
-        main_layout.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)) # Espaço menor
-        main_layout.addWidget(self.button)
-        main_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-        main_layout.addWidget(self.footer_label)
+        # --- Montagem do Container ---
+        container_layout.addWidget(self.title)
+        container_layout.addSpacing(20)
+        container_layout.addWidget(self.operation_label)
+        container_layout.addWidget(self.operation_combo)
+        container_layout.addSpacing(15)
+        container_layout.addWidget(self.label)
+        container_layout.addWidget(self.edit)
+        container_layout.addWidget(self.manual_fields_frame)
+        container_layout.addSpacing(15)
+        container_layout.addWidget(self.button)
+        container_layout.addStretch()  # Empurra o footer para baixo
+        container_layout.addWidget(self.footer_label)
 
-        # Não precisa mais de self.setLayout(main_layout), pois foi passado no construtor do QVBoxLayout
+        # --- Adicionar container ao layout principal ---
+        main_layout.addWidget(self.container)
 
-    @Slot()
-    def on_operation_changed(self):
-        """Mostra/oculta campos baseado na operação selecionada."""
-        operation_type = self.operation_combo.currentData()
-        
-        if operation_type == "MANUAL_VALIDATION":
-            self.manual_fields_frame.show()
-            # Ajustar o texto do label principal
-            self.label.setText("Ticket do Cliente:")
-        else:
-            self.manual_fields_frame.hide()
-            self.label.setText("Ticket do Cliente:")
-        
-        # Forçar o layout a se recalcular
-        self.updateGeometry()
-
+    # Adicione também estilos para o container no apply_dynamic_styles():
     def apply_dynamic_styles(self):
         """Aplica estilos aos widgets com base no tema detectado."""
         dark = self._dark_theme_active
 
-        # --- Definição das Cores ---
-        text_color = "#E0E0E0" if dark else "#222222" # Texto principal (claro no escuro, escuro no claro)
-        secondary_text = "#B0B0B0" if dark else "#555555" # Texto secundário/labels
-        footer_text = "#909090" if dark else "#666666" # Texto do rodapé
-        background_color = "#2E2E2E" if dark else "#F0F0F0" # Cor de fundo geral do widget (se necessário)
+        # Suas cores existentes...
+        text_color = "#E0E0E0" if dark else "#222222"
+        secondary_text = "#B0B0B0" if dark else "#555555"
+        footer_text = "#909090" if dark else "#666666"
         input_bg = "#3C3C3C" if dark else "#FFFFFF"
         input_text = "#F0F0F0" if dark else "#111111"
         border_color = "#555555" if dark else "#BBBBBB"
-        border_focus_color = "#4A9CFF" # Azul vibrante para foco (funciona em ambos)
-        button_bg_start = "#4A9CFF" if dark else "#007BFF" # Gradiente do botão
+        border_focus_color = "#4A9CFF"
+        button_bg_start = "#4A9CFF" if dark else "#007BFF"
         button_bg_end = "#1B6CD3" if dark else "#0056b3"
-        button_hover_start = "#5AAFFF" if dark else "#0056b3" # Hover um pouco mais claro/diferente
+        button_hover_start = "#5AAFFF" if dark else "#0056b3"
         button_hover_end = "#2C7CEF" if dark else "#003d80"
-        button_text = "#FFFFFF" # Texto do botão sempre branco
+        button_text = "#FFFFFF"
+        
+        # Cor do container
+        container_bg = "rgba(40, 40, 40, 0.8)" if dark else "rgba(255, 255, 255, 0.9)"
+        container_border = "rgba(100, 100, 100, 0.3)" if dark else "rgba(200, 200, 200, 0.5)"
 
-        # Aplica a cor de fundo ao widget principal
-        # self.setStyleSheet(f"QWidget {{ background-color: {background_color}; }}")
-        # Ou, para manter a imagem de fundo, ajustamos apenas a opacidade dela:
-        self.opacity_effect.setOpacity(0.3 if dark else 0.15) # Ajuste a opacidade conforme necessário
+        self.opacity_effect.setOpacity(0.4 if dark else 0.2)
 
-        # --- Estilos CSS ---
-        # Nota: Usar f-strings dentro de stylesheets pode ser confuso com as chaves {}.
-        # É mais seguro formatar as cores antes.
         style_sheet = f"""
+            QWidget#formContainer {{
+                background-color: {container_bg};
+                border: 1px solid {container_border};
+                border-radius: 15px;
+            }}
+
             QWidget {{
-                /* background-color: {background_color}; Sem isso para ver a imagem */
-                color: {secondary_text}; /* Cor de texto padrão para labels */
+                color: {secondary_text};
             }}
 
             QLabel#titleLabel {{
@@ -272,10 +271,9 @@ class MainWidget(QWidget):
             }}
             QLineEdit:focus {{
                 border: 1.5px solid {border_focus_color};
-                /* background-color: ligeiramente diferente no foco? opcional */
             }}
             QLineEdit:hover {{
-                 border: 1px solid {border_focus_color}; /* Ou uma cor de hover específica */
+                border: 1px solid {border_focus_color};
             }}
 
             QComboBox {{
@@ -290,29 +288,17 @@ class MainWidget(QWidget):
                 border: 1.5px solid {border_focus_color};
             }}
             QComboBox:hover {{
-                 border: 1px solid {border_focus_color};
+                border: 1px solid {border_focus_color};
             }}
-            QComboBox::drop-down {{ /* Estilizar a seta */
-                border: none;
-                background-color: transparent;
-                /* subcontrol-origin: padding;
-                subcontrol-position: top right;
-                width: 20px; */
-            }}
-            QComboBox::down-arrow {{
-                 /* Idealmente usar um ícone SVG aqui que possa ter a cor trocada */
-                 /* image: url(:/icons/down_arrow_{'dark' if dark else 'light'}.svg); */
-                 /* Se não tiver ícone, a seta padrão do sistema será usada */
-            }}
-            QComboBox QAbstractItemView {{ /* Estilo do dropdown menu */
+            QComboBox QAbstractItemView {{
                 background-color: {input_bg};
                 color: {input_text};
                 border: 1px solid {border_color};
                 selection-background-color: {border_focus_color};
-                selection-color: {button_text}; /* Texto do item selecionado */
+                selection-color: {button_text};
             }}
 
-            QTimeEdit, QDoubleSpinBox {{
+            QDoubleSpinBox {{
                 background-color: {input_bg};
                 color: {input_text};
                 border: 1px solid {border_color};
@@ -320,18 +306,18 @@ class MainWidget(QWidget):
                 padding: 8px;
                 font-size: 14px;
             }}
-            QTimeEdit:focus, QDoubleSpinBox:focus {{
+            QDoubleSpinBox:focus {{
                 border: 1.5px solid {border_focus_color};
             }}
-            QTimeEdit:hover, QDoubleSpinBox:hover {{
+            QDoubleSpinBox:hover {{
                 border: 1px solid {border_focus_color};
             }}
 
             QPushButton {{
-                font-size: 14px; /* Reduzido para consistência */
+                font-size: 14px;
                 font-weight: bold;
                 background: qlineargradient(
-                    spread:pad, x1:0, y1:0, x2:1, y2:0, /* Gradiente Horizontal */
+                    spread:pad, x1:0, y1:0, x2:1, y2:0,
                     stop:0 {button_bg_start},
                     stop:1 {button_bg_end}
                 );
@@ -339,7 +325,7 @@ class MainWidget(QWidget):
                 border-radius: 8px;
                 padding: 12px;
                 border: none;
-                outline: none; /* Remove outline pontilhado no foco */
+                outline: none;
             }}
 
             QPushButton:hover {{
@@ -351,23 +337,41 @@ class MainWidget(QWidget):
             }}
 
             QPushButton:pressed {{
-                background-color: {button_hover_end}; /* Cor sólida ao pressionar */
+                background-color: {button_hover_end};
             }}
 
-            QPushButton:focus {{ /* Adiciona um indicador de foco sutil */
-                 border: 1.5px solid {border_focus_color};
-                 /* Padding precisa ser ajustado para compensar a borda */
-                 padding: 10.5px;
+            QPushButton:focus {{
+                border: 1.5px solid {border_focus_color};
+                padding: 10.5px;
             }}
-
         """
         self.setStyleSheet(style_sheet)
+    
+    @Slot()
+    def on_operation_changed(self):
+        """Mostra/oculta campos baseado na operação selecionada."""
+        operation_type = self.operation_combo.currentData()
+        
+        if operation_type == "MANUAL_VALIDATION":
+            self.manual_fields_frame.show()
+            # Ajustar o texto do label principal
+            self.label.setText("Ticket do Cliente:")
+        else:
+            self.manual_fields_frame.hide()
+            self.label.setText("Ticket do Cliente:")
+        
+        # Forçar o layout a se recalcular
+        self.updateGeometry()
 
     def resizeEvent(self, event):
         """Redimensiona a imagem de fundo quando a janela for redimensionada."""
         # Move e redimensiona o label de fundo para cobrir todo o widget
         self.background_label.setGeometry(0, 0, self.width(), self.height())
         super().resizeEvent(event) # Chama o método da classe pai
+
+    def trigger_button_click(self):
+        """Aciona o clique visual no botão."""
+        self.button.animateClick()
 
     @Slot()
     def process_ticket(self):
@@ -395,10 +399,20 @@ class MainWidget(QWidget):
                 num_caixa = self.num_caixa_edit.text().strip()
                 valor_total = self.valor_edit.value()
 
-                if not num_caixa:
+                if not num_caixa or not valor_total:
                     error_box = CustomMessageBox(
                         "Erro",
                         "Por favor, preencha todos os campos obrigatórios para Validação Manual.",
+                        self.error_icon_path,
+                        self,
+                    )
+                    error_box.exec()
+                    return
+            
+                if not num_caixa.isdigit():
+                    error_box = CustomMessageBox(
+                        "Erro",
+                        "O número do caixa deve ser um número inteiro.",
                         self.error_icon_path,
                         self,
                     )
@@ -410,7 +424,7 @@ class MainWidget(QWidget):
                 # Criar requisição com dados manuais
                 discount_request = DiscountRequest(
                     cmd_card_id=ticket_code,
-                    cmd_term_id=num_caixa,  # Usando número do caixa como terminal
+                    cmd_term_id=int(num_caixa),  # Usando número do caixa como terminal
                     cmd_op_value=valor_total,
                     cmd_type=CommandType.VALIDATION,  # Pode ajustar conforme necessário
                 )
@@ -478,6 +492,8 @@ class MainWidget(QWidget):
                     self,
                 )
                 success_box.exec()
+                # MINIMIZAR COM DELAY DE 2 SEGUNDO
+                QTimer.singleShot(2000, self.window().showMinimized)
                 
                 # Limpar campos após sucesso
                 if operation_type in [CommandType.VALIDATION, "MANUAL_VALIDATION"]:
