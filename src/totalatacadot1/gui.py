@@ -61,7 +61,7 @@ def is_dark_theme():
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Total Atacado")
+        self.setWindowTitle("Total Atacado - Integração Estacionamento")
         icon_path = str(get_assets_path() / "icons" / "icon")
         self.setWindowIcon(QIcon(icon_path))
         self.setGeometry(100, 100, 1024, 768)
@@ -126,50 +126,50 @@ class MainWidget(QWidget):
         self.container = QWidget()
         self.container.setObjectName("formContainer")
         self.container.setFixedWidth(600)  # Largura fixa do formulário
-        self.container.setMaximumHeight(700)  # Altura máxima para não ficar muito alto
+        self.container.setMaximumHeight(600)  # Altura máxima para não ficar muito alto
         
         # Layout do container
         container_layout = QVBoxLayout(self.container)
         container_layout.setContentsMargins(40, 30, 40, 30)
-        container_layout.setSpacing(15)
+        container_layout.setSpacing(10)
 
         # --- Widgets (mesmo conteúdo, diferente organização) ---
-        self.title = QLabel("Integração Estacionamento")
-        self.title.setObjectName("Total Atacado - Integração Estacionamento")
-        self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title.setFont(QFont("Arial", 28, QFont.Weight.Bold))  # Menor para caber melhor
+        # self.title = QLabel("Integração Estacionamento")
+        # self.title.setObjectName("Total Atacado - Integração Estacionamento")
+        # self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # self.title.setFont(QFont("Arial", 24, QFont.Weight.Bold))  # Menor para caber melhor
 
         self.operation_label = QLabel("Tipo de Operação:")
         self.operation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.operation_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        self.operation_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
 
         self.operation_combo = QComboBox()
         self.operation_combo.addItem("Validação Automática", CommandType.VALIDATION)
         # self.operation_combo.addItem("Consulta", CommandType.CONSULT)
         self.operation_combo.addItem("Validação Manual", "MANUAL_VALIDATION")
         self.operation_combo.setFixedHeight(40)
-        self.operation_combo.setFont(QFont("Arial", 12))
+        self.operation_combo.setFont(QFont("Arial", 10))
         self.operation_combo.currentTextChanged.connect(self.on_operation_changed)
 
         self.label = QLabel("Ticket do Cliente:")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        self.label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
 
         self.edit = QLineEdit()
         self.edit.setPlaceholderText("Escreva o código aqui")
         self.edit.setFixedHeight(40)
-        self.edit.setFont(QFont("Arial", 12))
-        self.edit.returnPressed.connect(self.trigger_button_click)
+        self.edit.setFont(QFont("Arial", 10))
+        self.edit.returnPressed.connect(self.process_ticket)
         
         self.automatic_fields_frame = QFrame()
         automatic_fields_layout = QVBoxLayout(self.automatic_fields_frame)
-        automatic_fields_layout.setSpacing(15)
+        automatic_fields_layout.setSpacing(10)
         automatic_fields_layout.setContentsMargins(0, 0, 0, 0)
 
         self.actual_valor_label = QLabel("Valor Total (R$):")
         self.actual_valor_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.actual_valor_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        self.actual_valor_label.setContentsMargins(0, 15, 0, 0)
+        self.actual_valor_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        self.actual_valor_label.setContentsMargins(0, 10, 0, 0)
         
         self.actual_valor = QDoubleSpinBox()
         self.actual_valor.setReadOnly(True)
@@ -177,8 +177,8 @@ class MainWidget(QWidget):
         self.actual_valor.setDecimals(2)
         self.actual_valor.setPrefix("R$ ")
         self.actual_valor.setFixedHeight(40)
-        self.actual_valor.setFont(QFont("Arial", 12))
-        self.actual_valor.lineEdit().returnPressed.connect(self.trigger_button_click)
+        self.actual_valor.setFont(QFont("Arial", 10))
+        self.actual_valor.lineEdit().returnPressed.connect(self.process_ticket)
         
         automatic_fields_layout.addWidget(self.actual_valor_label)
         automatic_fields_layout.addWidget(self.actual_valor)
@@ -186,23 +186,23 @@ class MainWidget(QWidget):
         # --- Campos manuais ---
         self.manual_fields_frame = QFrame()
         manual_fields_layout = QVBoxLayout(self.manual_fields_frame)
-        manual_fields_layout.setSpacing(15)
+        manual_fields_layout.setSpacing(10)
         manual_fields_layout.setContentsMargins(0, 0, 0, 0)
 
         self.num_cupom = QLabel("Número do Cupom:")
         self.num_cupom.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.num_cupom.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        self.num_cupom.setContentsMargins(0, 15, 0, 0)
+        self.num_cupom.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        self.num_cupom.setContentsMargins(0, 10, 0, 0)
 
         self.num_cupom_edit = QLineEdit()
         self.num_cupom_edit.setPlaceholderText("Digite o número do cupom")
         self.num_cupom_edit.setFixedHeight(40)
-        self.num_cupom_edit.setFont(QFont("Arial", 12))
-        self.num_cupom_edit.returnPressed.connect(self.trigger_button_click)
+        self.num_cupom_edit.setFont(QFont("Arial", 10))
+        self.num_cupom_edit.returnPressed.connect(self.process_ticket)
 
         self.valor_label = QLabel("Valor Total (R$):")
         self.valor_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.valor_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        self.valor_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         self.valor_label.setContentsMargins(0, 15, 0, 0)
         
         self.valor_edit = QDoubleSpinBox()
@@ -210,8 +210,8 @@ class MainWidget(QWidget):
         self.valor_edit.setDecimals(2)
         self.valor_edit.setPrefix("R$ ")
         self.valor_edit.setFixedHeight(40)
-        self.valor_edit.setFont(QFont("Arial", 12))
-        self.valor_edit.lineEdit().returnPressed.connect(self.trigger_button_click)
+        self.valor_edit.setFont(QFont("Arial", 10))
+        self.valor_edit.lineEdit().returnPressed.connect(self.process_ticket)
 
         manual_fields_layout.addWidget(self.num_cupom)
         manual_fields_layout.addWidget(self.num_cupom_edit)
@@ -221,29 +221,29 @@ class MainWidget(QWidget):
 
         self.button = QPushButton("Processar")
         self.button.setFixedHeight(50)
-        self.button.clicked.connect(self.process_ticket)
         self.button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.button.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        self.button.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        self.button.clicked.connect(self.process_ticket)
         self.button.pressed.connect(self.process_ticket)
 
         self.footer_label = QLabel(f"© {datetime.now().year} Total Atacado")
         self.footer_label.setObjectName("footerLabel")
         self.footer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.footer_label.setFont(QFont("Arial", 10, QFont.Weight.DemiBold))
+        self.footer_label.setFont(QFont("Arial", 8, QFont.Weight.DemiBold))
 
         # --- Montagem do Container ---
-        container_layout.addWidget(self.title)
-        container_layout.addSpacing(20)
+        # container_layout.addWidget(self.title)
+        # container_layout.addSpacing(20)
         container_layout.addWidget(self.operation_label)
         container_layout.addWidget(self.operation_combo)
-        container_layout.addSpacing(15)
+        container_layout.addSpacing(10)
         container_layout.addWidget(self.label)
         container_layout.addWidget(self.edit)
         container_layout.addWidget(self.automatic_fields_frame)
         container_layout.addWidget(self.manual_fields_frame)
-        container_layout.addSpacing(15)
+        container_layout.addSpacing(10)
         container_layout.addWidget(self.button)
-        container_layout.addStretch()  # Empurra o footer para baixo
+        # container_layout.addStretch()  # Empurra o footer para baixo
         container_layout.addWidget(self.footer_label)
 
         # --- Adicionar container ao layout principal ---
