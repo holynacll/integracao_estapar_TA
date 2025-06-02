@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
 
         self.main_widget = MainWidget()
         self.setCentralWidget(self.main_widget)
-    
+
     @Slot(float)
     def update_actual_valor(self, valor):
         """Atualiza especificamente o actual_valor na interface."""
@@ -110,7 +110,7 @@ class MainWidget(QWidget):
     def init_ui(self):
         # --- Background Setup ---
         self.background_label = QLabel(self)
-        pixmap = QPixmap(self.background_image_path)
+        pixmap: QPixmap = QPixmap(self.background_image_path)
         self.background_label.setPixmap(pixmap)
         self.background_label.setScaledContents(True)
         self.opacity_effect = QGraphicsOpacityEffect(self)
@@ -121,13 +121,13 @@ class MainWidget(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
+
         # --- Container Central ---
         self.container = QWidget()
         self.container.setObjectName("formContainer")
         self.container.setFixedWidth(600)  # Largura fixa do formulário
         self.container.setMaximumHeight(600)  # Altura máxima para não ficar muito alto
-        
+
         # Layout do container
         container_layout = QVBoxLayout(self.container)
         container_layout.setContentsMargins(40, 30, 40, 30)
@@ -160,7 +160,7 @@ class MainWidget(QWidget):
         self.edit.setFixedHeight(40)
         self.edit.setFont(QFont("Arial", 10))
         self.edit.returnPressed.connect(self.process_ticket)
-        
+
         self.automatic_fields_frame = QFrame()
         automatic_fields_layout = QVBoxLayout(self.automatic_fields_frame)
         automatic_fields_layout.setSpacing(10)
@@ -170,7 +170,7 @@ class MainWidget(QWidget):
         self.actual_valor_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.actual_valor_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         self.actual_valor_label.setContentsMargins(0, 10, 0, 0)
-        
+
         self.actual_valor = QDoubleSpinBox()
         self.actual_valor.setReadOnly(True)
         self.actual_valor.setRange(0.01, 999999.99)
@@ -179,7 +179,7 @@ class MainWidget(QWidget):
         self.actual_valor.setFixedHeight(40)
         self.actual_valor.setFont(QFont("Arial", 10))
         self.actual_valor.lineEdit().returnPressed.connect(self.process_ticket)
-        
+
         automatic_fields_layout.addWidget(self.actual_valor_label)
         automatic_fields_layout.addWidget(self.actual_valor)
 
@@ -204,7 +204,7 @@ class MainWidget(QWidget):
         self.valor_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.valor_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         self.valor_label.setContentsMargins(0, 15, 0, 0)
-        
+
         self.valor_edit = QDoubleSpinBox()
         self.valor_edit.setRange(0.01, 999999.99)
         self.valor_edit.setDecimals(2)
@@ -267,12 +267,12 @@ class MainWidget(QWidget):
         button_hover_start = "#5AAFFF" if dark else "#0056b3"
         button_hover_end = "#2C7CEF" if dark else "#003d80"
         button_text = "#FFFFFF"
-        
+
         # Cores para campos readonly
         readonly_bg = "#2A2A2A" if dark else "#F5F5F5"
         readonly_text = "#808080" if dark else "#666666"
         readonly_border = "#444444" if dark else "#CCCCCC"
-        
+
         # Cor do container
         container_bg = "rgba(40, 40, 40, 0.8)" if dark else "rgba(255, 255, 255, 0.9)"
         container_border = "rgba(100, 100, 100, 0.3)" if dark else "rgba(200, 200, 200, 0.5)"
@@ -349,7 +349,7 @@ class MainWidget(QWidget):
             QDoubleSpinBox:hover {{
                 border: 1px solid {border_focus_color};
             }}
-            
+
             /* Estilo específico para QDoubleSpinBox readonly */
             QDoubleSpinBox:read-only {{
                 background-color: {readonly_bg};
@@ -396,12 +396,12 @@ class MainWidget(QWidget):
             }}
         """
         self.setStyleSheet(style_sheet)
-    
+
     @Slot()
     def on_operation_changed(self):
         """Mostra/oculta campos baseado na operação selecionada."""
         operation_type = self.operation_combo.currentData()
-        
+
         if operation_type == "MANUAL_VALIDATION":
             self.manual_fields_frame.show()
             self.automatic_fields_frame.hide()
@@ -411,7 +411,7 @@ class MainWidget(QWidget):
             self.manual_fields_frame.hide()
             self.automatic_fields_frame.show()
             self.label.setText("Ticket do Cliente:")
-        
+
         # Forçar o layout a se recalcular
         self.updateGeometry()
 
@@ -460,7 +460,7 @@ class MainWidget(QWidget):
                     )
                     error_box.exec()
                     return
-            
+
                 if not num_cupom.isdigit():
                     error_box = CustomMessageBox(
                         "Erro",
@@ -525,7 +525,7 @@ class MainWidget(QWidget):
             logger.debug("Enviando requisição para API")
             result = service.create_discount(discount_request)
             logger.debug(f"Resposta da API: {result}")
-            
+
             if result.success:
                 if operation_type == "MANUAL_VALIDATION":
                     success_title = "Validação Manual Realizada"
@@ -533,7 +533,7 @@ class MainWidget(QWidget):
                     success_title = "Consulta Realizada"
                 else:
                     success_title = "Validação Realizada"
-                    
+
                 msg = f"Operação realizada com sucesso!\nAPI Estapar: {result.message}"
 
                 logger.success(msg)
@@ -546,7 +546,7 @@ class MainWidget(QWidget):
                 success_box.exec()
                 # MINIMIZAR COM DELAY DE 2 SEGUNDO
                 QTimer.singleShot(2000, self.window().showMinimized)
-                
+
                 # Limpar campos após sucesso
                 if operation_type in [CommandType.VALIDATION, "MANUAL_VALIDATION"]:
                     self.edit.clear()
