@@ -54,16 +54,25 @@ def main():
     logger.info("Iniciando o aplicativo...")
 
     # init db
-    init_db()
+    db_on = False
+    try:
+        init_db()
+        db_on = True
+    except Exception as e:
+        logger.error(f"Erro ao inicializar o banco de dados: {e}")
 
     controller = AppController()
 
     # Inicialmente esconder a janela principal, mas manter o ícone na bandeja
-    controller.hide_gui()
+    if db_on:
+        controller.hide_gui()
 
-    # Criar e iniciar a thread que executa a lógica em segundo plano
-    thread = Thread(target=background_task, args=(controller,), daemon=True)
-    thread.start()
+        # Criar e iniciar a thread que executa a lógica em segundo plano
+        thread = Thread(target=background_task, args=(controller,), daemon=True)
+        thread.start()
+    else:
+        controller.show_gui()
+
 
     # Iniciar o loop de eventos do Qt
     controller.run_event_loop()

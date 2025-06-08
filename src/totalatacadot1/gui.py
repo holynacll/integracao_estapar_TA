@@ -570,7 +570,7 @@ class MainWidget(QWidget):
 
             error_box = CustomMessageBox(
                 "Erro Crítico",
-                f"Ocorreu um erro inesperado:\n{str(e)}\n\nVerifique os logs para mais detalhes.",
+                f"Ocorreu um erro inesperado, verifique os logs para mais detalhes.",
                 self.error_icon_path,
                 self,
             )
