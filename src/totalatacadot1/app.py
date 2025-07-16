@@ -27,7 +27,7 @@ def background_task(controller: AppController):
         # if controller.is_gui_open():
         #     logger.info("A GUI já está aberta. Aguardando liberação...")
         #     continue
-        last_pdv_pedido: PCPEDCECF = get_last_pdv_pedido()
+        last_pdv_pedido: PCPEDCECF | None = get_last_pdv_pedido()
         if last_pdv_pedido is None:
             continue
 
@@ -37,7 +37,7 @@ def background_task(controller: AppController):
             last_pdv_pedido.num_ped_ecf
         )
         if pdv_control_item is None:
-            pdv_control_item: ControlPDV = create_pdv_control_item(
+            pdv_control_item = create_pdv_control_item(
                 last_pdv_pedido.num_ped_ecf
             )
             """Solicita a validação do ticket."""

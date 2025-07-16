@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
     QGraphicsOpacityEffect, # Importar QGraphicsOpacityEffect
-    QDoubleSpinBox,  # Para o campo de valor
+    QSpinBox,  # Para o campo de valor sem decimais
 )
 from PySide6.QtGui import QIcon, QFont, QPixmap, QPalette, QColor # Importar QColor
 
@@ -159,7 +159,7 @@ class MainWidget(QWidget):
         self.edit.setPlaceholderText("Escreva o código aqui")
         self.edit.setFixedHeight(40)
         self.edit.setFont(QFont("Arial", 10))
-        self.edit.returnPressed.connect(self.process_ticket)
+        self.edit.returnPressed.connect(self._on_edit_return_pressed)
 
         self.automatic_fields_frame = QFrame()
         automatic_fields_layout = QVBoxLayout(self.automatic_fields_frame)
@@ -171,14 +171,14 @@ class MainWidget(QWidget):
         self.actual_valor_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         self.actual_valor_label.setContentsMargins(0, 10, 0, 0)
 
-        self.actual_valor = QDoubleSpinBox()
+        self.actual_valor = QSpinBox()
         self.actual_valor.setReadOnly(True)
-        self.actual_valor.setRange(0.01, 999999.99)
-        self.actual_valor.setDecimals(2)
+        self.actual_valor.setRange(0, 99999999)
+        # self.actual_valor.setDecimals(0)
         self.actual_valor.setPrefix("R$ ")
         self.actual_valor.setFixedHeight(40)
         self.actual_valor.setFont(QFont("Arial", 10))
-        self.actual_valor.lineEdit().returnPressed.connect(self.process_ticket)
+        self.actual_valor.lineEdit().returnPressed.connect(self.trigger_button_click)
 
         automatic_fields_layout.addWidget(self.actual_valor_label)
         automatic_fields_layout.addWidget(self.actual_valor)
@@ -198,20 +198,20 @@ class MainWidget(QWidget):
         self.num_cupom_edit.setPlaceholderText("Digite o número do cupom")
         self.num_cupom_edit.setFixedHeight(40)
         self.num_cupom_edit.setFont(QFont("Arial", 10))
-        self.num_cupom_edit.returnPressed.connect(self.process_ticket)
+        self.num_cupom_edit.returnPressed.connect(lambda: self.valor_edit.setFocus())
 
         self.valor_label = QLabel("Valor Total (R$):")
         self.valor_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.valor_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         self.valor_label.setContentsMargins(0, 15, 0, 0)
 
-        self.valor_edit = QDoubleSpinBox()
-        self.valor_edit.setRange(0.01, 999999.99)
-        self.valor_edit.setDecimals(2)
+        self.valor_edit = QSpinBox()
+        self.valor_edit.setRange(0, 99999999)
+        # self.valor_edit.setDecimals(2)
         self.valor_edit.setPrefix("R$ ")
         self.valor_edit.setFixedHeight(40)
         self.valor_edit.setFont(QFont("Arial", 10))
-        self.valor_edit.lineEdit().returnPressed.connect(self.process_ticket)
+        self.valor_edit.lineEdit().returnPressed.connect(self.trigger_button_click)
 
         manual_fields_layout.addWidget(self.num_cupom)
         manual_fields_layout.addWidget(self.num_cupom_edit)
@@ -224,7 +224,7 @@ class MainWidget(QWidget):
         self.button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.button.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         self.button.clicked.connect(self.process_ticket)
-        self.button.pressed.connect(self.process_ticket)
+        # self.button.pressed.connect(self.process_ticket)
 
         self.footer_label = QLabel(f"© {datetime.now().year} Total Atacado")
         self.footer_label.setObjectName("footerLabel")
@@ -335,7 +335,7 @@ class MainWidget(QWidget):
                 selection-color: {button_text};
             }}
 
-            QDoubleSpinBox {{
+            QSpinBox {{
                 background-color: {input_bg};
                 color: {input_text};
                 border: 1px solid {border_color};
@@ -343,23 +343,23 @@ class MainWidget(QWidget):
                 padding: 8px;
                 font-size: 14px;
             }}
-            QDoubleSpinBox:focus {{
+            QSpinBox:focus {{
                 border: 1.5px solid {border_focus_color};
             }}
-            QDoubleSpinBox:hover {{
+            QSpinBox:hover {{
                 border: 1px solid {border_focus_color};
             }}
 
-            /* Estilo específico para QDoubleSpinBox readonly */
-            QDoubleSpinBox:read-only {{
+            /* Estilo específico para QSpinBox readonly */
+            QSpinBox:read-only {{
                 background-color: {readonly_bg};
                 color: {readonly_text};
                 border: 1px solid {readonly_border};
             }}
-            QDoubleSpinBox:read-only:hover {{
+            QSpinBox:read-only:hover {{
                 border: 1px solid {readonly_border};
             }}
-            QDoubleSpinBox:read-only:focus {{
+            QSpinBox:read-only:focus {{
                 border: 1px solid {readonly_border};
             }}
 
@@ -400,9 +400,7 @@ class MainWidget(QWidget):
     @Slot()
     def on_operation_changed(self):
         """Mostra/oculta campos baseado na operação selecionada."""
-        operation_type = self.operation_combo.currentData()
-
-        if operation_type == "MANUAL_VALIDATION":
+        if self._is_manual_validation():
             self.manual_fields_frame.show()
             self.automatic_fields_frame.hide()
             # Ajustar o texto do label principal
@@ -413,8 +411,19 @@ class MainWidget(QWidget):
             self.label.setText("Ticket do Cliente:")
 
         # Forçar o layout a se recalcular
-        self.updateGeometry()
+        self.updateGeometry()   
 
+    def _is_manual_validation(self):
+        return self.operation_combo.currentData() == "MANUAL_VALIDATION"
+    
+
+    def _on_edit_return_pressed(self):
+        if self._is_manual_validation():
+            self.num_cupom_edit.setFocus()
+        else:
+            self.trigger_button_click()
+
+    
     def resizeEvent(self, event):
         """Redimensiona a imagem de fundo quando a janela for redimensionada."""
         # Move e redimensiona o label de fundo para cobrir todo o widget
@@ -545,7 +554,7 @@ class MainWidget(QWidget):
                 )
                 success_box.exec()
                 # MINIMIZAR COM DELAY DE 2 SEGUNDO
-                QTimer.singleShot(2000, self.window().showMinimized)
+                QTimer.singleShot(1500, self.window().showMinimized)
 
                 # Limpar campos após sucesso
                 if operation_type in [CommandType.VALIDATION, "MANUAL_VALIDATION"]:
