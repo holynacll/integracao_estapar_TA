@@ -23,6 +23,7 @@ from PySide6.QtGui import QIcon, QFont, QPixmap, QPalette, QColor # Importar QCo
 from totalatacadot1.enums import CommandType
 from totalatacadot1.estapar_integration_service import EstaparIntegrationService
 from totalatacadot1.custom_message_box import CustomMessageBox
+from totalatacadot1.notification import Notification
 from totalatacadot1.repository import get_last_pdv_pedido
 from totalatacadot1.schemas import DiscountRequest
 
@@ -48,7 +49,7 @@ def is_dark_theme():
             logger.warning("QApplication instance not found for theme detection. Assuming light theme.")
             return False
 
-        palette = app_instance.palette()
+        palette = app_instance.palette() # type: ignore
         # Compara o brilho da cor de fundo da janela com um limiar
         # O valor 128 é um ponto médio comum (0=preto, 255=branco)
         window_color = palette.color(QPalette.ColorRole.Window)
@@ -535,6 +536,18 @@ class MainWidget(QWidget):
             result = service.create_discount(discount_request)
             logger.debug(f"Resposta da API: {result}")
 
+            notification_data = {
+                "ticket_code": ticket_code,
+                "operation_type": operation_type,
+                "num_ped_ecf": pdv_pedido.num_ped_ecf,
+                "vl_total": pdv_pedido.vl_total,
+                "success": result.success,
+                "message": result.message,
+            }
+
+            notification = Notification(**notification_data)
+            notification.notify_discount()
+
             if result.success:
                 if operation_type == "MANUAL_VALIDATION":
                     success_title = "Validação Manual Realizada"
@@ -573,6 +586,17 @@ class MainWidget(QWidget):
                 error_box.exec()
 
         except Exception as e:
+            notification_data = {
+                "ticket_code": ticket_code if ticket_code else "N/A",
+                "operation_type": operation_type if operation_type else "N/A",
+                "num_ped_ecf": pdv_pedido.num_ped_ecf if pdv_pedido else 0,
+                "vl_total": pdv_pedido.vl_total if pdv_pedido else 0,
+                "success": False,
+                "message": f"Erro inesperado: {str(e)}",
+            }
+
+            notification = Notification(**notification_data)
+            notification.notify_discount()
             logger.critical(f"Erro inesperado: {str(e)}")
             import traceback
             traceback.print_exc() # Imprime o stack trace completo no console/log

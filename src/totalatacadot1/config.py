@@ -19,3 +19,7 @@ def get_orcl_instant_client_path() -> Path:
 
 def get_orcl_instant_client_path_zipped() -> Path:
     return get_project_root() / "instantclient-basic-windows.x64.zip"
+
+
+def get_url_notification() -> str:
+    return "http://localhost:8080"
