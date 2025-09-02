@@ -22,4 +22,4 @@ def get_orcl_instant_client_path_zipped() -> Path:
 
 
 def get_url_notification() -> str:
-    return "http://localhost:8080"
+    return "http://localhost:8000"

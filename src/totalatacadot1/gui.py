@@ -31,6 +31,9 @@ from .config import get_assets_path
 
 # load_dotenv()
 
+# IP = "127.0.0.1"
+# PORT = 33535
+
 # Estapar API
 IP = "10.7.39.10"
 PORT = 3000
@@ -438,6 +441,7 @@ class MainWidget(QWidget):
     @Slot()
     def process_ticket(self):
         try:
+            pdv_pedido = None
             logger.debug("Iniciando processamento de ticket")
             ticket_code = self.edit.text().strip()
             operation_type = self.operation_combo.currentData()
@@ -491,6 +495,13 @@ class MainWidget(QWidget):
                     cmd_type=CommandType.VALIDATION,  # Pode ajustar conforme necessário
                 )
 
+                notification_data = Notification(
+                    ticket_code=ticket_code,
+                    operation_type=operation_type,
+                    num_cupom=int(num_cupom),
+                    vl_total=valor_total,
+                )
+
             else:
                 # Lógica original para Validação e Consulta automáticas
                 logger.debug("Consultando último pedido PDV")
@@ -515,6 +526,13 @@ class MainWidget(QWidget):
                     cmd_type=operation_type,
                 )
 
+                notification_data = Notification(
+                    ticket_code=ticket_code,
+                    operation_type=operation_type,
+                    num_ped_ecf=pdv_pedido.num_ped_ecf,
+                    vl_total=pdv_pedido.vl_total,
+                )
+
             # Validando se o ticket é válido
             try:
                 discount_request.validate()  # 👈 Valida os campos
@@ -536,17 +554,9 @@ class MainWidget(QWidget):
             result = service.create_discount(discount_request)
             logger.debug(f"Resposta da API: {result}")
 
-            notification_data = {
-                "ticket_code": ticket_code,
-                "operation_type": operation_type,
-                "num_ped_ecf": pdv_pedido.num_ped_ecf,
-                "vl_total": pdv_pedido.vl_total,
-                "success": result.success,
-                "message": result.message,
-            }
-
-            notification = Notification(**notification_data)
-            notification.notify_discount()
+            notification_data.success = result.success
+            notification_data.message = result.message
+            notification_data.notify_discount()
 
             if result.success:
                 if operation_type == "MANUAL_VALIDATION":
@@ -589,8 +599,8 @@ class MainWidget(QWidget):
             notification_data = {
                 "ticket_code": ticket_code if ticket_code else "N/A",
                 "operation_type": operation_type if operation_type else "N/A",
-                "num_ped_ecf": pdv_pedido.num_ped_ecf if pdv_pedido else 0,
-                "vl_total": pdv_pedido.vl_total if pdv_pedido else 0,
+                "num_ped_ecf": pdv_pedido.num_ped_ecf if pdv_pedido else None,
+                "vl_total": pdv_pedido.vl_total if pdv_pedido else None,
                 "success": False,
                 "message": f"Erro inesperado: {str(e)}",
             }

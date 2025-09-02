@@ -26,11 +26,11 @@ def msg_process(mensagem):
         if cmdType == 0x0000000F:  # cmdConsult
             rspType = 0x0001000F
             status = 0x00000000  # Cartão validado
-            status_msg = f"Cartão validado até {time.strftime('%d/%m/%Y - %H:%M')}"
+            status_msg = f"Cartao validado ate {time.strftime('%d/%m/%Y - %H:%M')}"
         elif cmdType == 0x00000010:  # cmdValidation
             rspType = 0x00010010
             status = 0x00000000  # Cartão validado
-            status_msg = f"Cartão validado até {time.strftime('%d/%m/%Y - %H:%M')}"
+            status_msg = f"Cartao validado ate {time.strftime('%d/%m/%Y - %H:%M')}"
         else:
             return None  # Comando desconhecido
 
