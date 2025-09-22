@@ -12,6 +12,7 @@ class Notification():
     ticket_code: str
     vl_total: float
     operation_type: str
+    num_caixa: int | None = None
     num_cupom: int | None = None
     num_ped_ecf: int | None = None
     success: bool | None = None
@@ -21,6 +22,7 @@ class Notification():
         return {
             "ticket_code": self.ticket_code,
             "num_ped_ecf": self.num_ped_ecf,
+            "num_caixa": self.num_caixa,
             "num_cupom": self.num_cupom,
             "vl_total": self.vl_total,
             "operation_type": self.operation_type,

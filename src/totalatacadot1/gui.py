@@ -441,7 +441,9 @@ class MainWidget(QWidget):
     @Slot()
     def process_ticket(self):
         try:
-            pdv_pedido = None
+            # Lógica original para Validação e Consulta automáticas
+            logger.debug("Consultando último pedido PDV")
+            pdv_pedido = get_last_pdv_pedido()
             logger.debug("Iniciando processamento de ticket")
             ticket_code = self.edit.text().strip()
             operation_type = self.operation_combo.currentData()
@@ -498,30 +500,26 @@ class MainWidget(QWidget):
                 notification_data = Notification(
                     ticket_code=ticket_code,
                     operation_type=operation_type,
+                    num_caixa=pdv_pedido.num_caixa if pdv_pedido else None,
                     num_cupom=int(num_cupom),
                     vl_total=valor_total,
                 )
 
             else:
-                # Lógica original para Validação e Consulta automáticas
-                logger.debug("Consultando último pedido PDV")
-                pdv_pedido = get_last_pdv_pedido()
-
                 if not pdv_pedido:
                     logger.error("Nenhum pedido PDV encontrado")
                     error_box = CustomMessageBox(
                         "Erro",
-                        "Não foi possível encontrar o ticket do cliente.\nPor favor, verifique o código e tente novamente.\n",
+                        "Não foi possível encontrar um pedido PDV com válido.\nPor favor, entre em contato com a administração do sistema.\n",
                         self.error_icon_path,
                         self,
                     )
                     error_box.exec()
                     return
-
                 logger.debug("Criando requisição")
                 discount_request = DiscountRequest(
                     cmd_card_id=ticket_code,
-                    cmd_term_id=pdv_pedido.num_ped_ecf, # Num cupom
+                    cmd_term_id=pdv_pedido.num_ped_ecf, # Num cupom ou Num Caixa?
                     cmd_op_value=pdv_pedido.vl_total,
                     cmd_type=operation_type,
                 )
@@ -529,6 +527,7 @@ class MainWidget(QWidget):
                 notification_data = Notification(
                     ticket_code=ticket_code,
                     operation_type=operation_type,
+                    num_caixa=pdv_pedido.num_caixa,
                     num_ped_ecf=pdv_pedido.num_ped_ecf,
                     vl_total=pdv_pedido.vl_total,
                 )
@@ -601,6 +600,7 @@ class MainWidget(QWidget):
                 "operation_type": operation_type if operation_type else "N/A",
                 "num_ped_ecf": pdv_pedido.num_ped_ecf if pdv_pedido else None,
                 "vl_total": pdv_pedido.vl_total if pdv_pedido else None,
+                "num_caixa": pdv_pedido.num_caixa if pdv_pedido else None,
                 "success": False,
                 "message": f"Erro inesperado: {str(e)}",
             }
