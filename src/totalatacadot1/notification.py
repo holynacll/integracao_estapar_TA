@@ -14,7 +14,7 @@ class Notification():
     operation_type: str
     num_caixa: int | None = None
     num_cupom: int | None = None
-    num_ped_ecf: int | None = None
+    num_ped_ecf: str | None = None
     success: bool | None = None
     message: str | None = None
 

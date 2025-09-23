@@ -526,10 +526,10 @@ class MainWidget(QWidget):
 
                 notification_data = Notification(
                     ticket_code=ticket_code,
-                    operation_type=operation_type,
-                    num_caixa=pdv_pedido.num_caixa,
-                    num_ped_ecf=pdv_pedido.num_ped_ecf,
-                    vl_total=pdv_pedido.vl_total,
+                    operation_type=operation_type if operation_type == "MANUAL_VALIDATION" else "AUTOMATIC_VALIDATION",
+                    num_caixa=pdv_pedido.num_caixa if pdv_pedido.num_caixa else None,
+                    num_ped_ecf=str(pdv_pedido.num_ped_ecf) if pdv_pedido.num_ped_ecf else None,
+                    vl_total=float(pdv_pedido.vl_total) if pdv_pedido else 0,
                 )
 
             # Validando se o ticket é válido
@@ -555,6 +555,7 @@ class MainWidget(QWidget):
 
             notification_data.success = result.success
             notification_data.message = result.message
+            logger.warning(f"Enviando notificação: {notification_data}")
             notification_data.notify_discount()
 
             if result.success:
@@ -597,8 +598,8 @@ class MainWidget(QWidget):
         except Exception as e:
             notification_data = {
                 "ticket_code": ticket_code if ticket_code else "N/A",
-                "operation_type": operation_type if operation_type else "N/A",
-                "num_ped_ecf": pdv_pedido.num_ped_ecf if pdv_pedido else None,
+                "operation_type": operation_type if operation_type == "MANUAL_VALIDATION" else "AUTOMATIC_VALIDATION",
+                "num_ped_ecf": str(pdv_pedido.num_ped_ecf) if pdv_pedido else None,
                 "vl_total": pdv_pedido.vl_total if pdv_pedido else None,
                 "num_caixa": pdv_pedido.num_caixa if pdv_pedido else None,
                 "success": False,
