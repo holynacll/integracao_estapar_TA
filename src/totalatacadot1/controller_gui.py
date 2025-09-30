@@ -1,3 +1,4 @@
+# controller_gui.py
 import sys
 import traceback
 from loguru import logger
