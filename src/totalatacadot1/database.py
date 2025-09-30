@@ -109,7 +109,7 @@ def get_sqlite_db():
     try:
         yield db
     finally:
-        db
+        db.close()
 
 
 # Context manager para usar em blocos 'with'
@@ -119,12 +119,14 @@ db_sqlite_context = contextmanager(get_sqlite_db)
 
 # Funções para criar as tabelas no SQLite (se não existirem)
 def create_sqlite_tables():
-    BaseSQLite.metadata.create_all(bind=sqlite_engine, checkfirst=True)
+    if sqlite_engine:
+        BaseSQLite.metadata.create_all(bind=sqlite_engine, checkfirst=True)
 
 
 # Funções para criar as tabelas no Oracle
 def create_oracle_tables():
-    BaseOracle.metadata.create_all(bind=oracle_engine, checkfirst=True)
+    if oracle_engine:
+        BaseOracle.metadata.create_all(bind=oracle_engine, checkfirst=True)
 
 
 # Função para inicializar o banco de dados
