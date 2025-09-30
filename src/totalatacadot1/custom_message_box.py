@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QDialog, QPushButton
-from PySide6.QtGui import QIcon, QPixmap, QFont
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtCore import Qt
 
 
@@ -8,7 +8,7 @@ class CustomMessageBox(QDialog):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setWindowIcon(QIcon(icon_path))
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
         # Define o tamanho fixo da janela
         # self.setFixedSize(500, 275)

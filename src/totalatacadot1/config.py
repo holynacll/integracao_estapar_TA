@@ -1,5 +1,11 @@
 from pathlib import Path
 
+# IP = "127.0.0.1"
+# PORT = 33535
+
+# Estapar API
+IP = "10.7.39.10"
+PORT = 3000
 
 def get_project_root() -> Path:
     return Path(__file__).parent
