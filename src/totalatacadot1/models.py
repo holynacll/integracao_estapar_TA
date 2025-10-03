@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, Numeric, String, func
+from sqlalchemy import JSON, Boolean, DateTime, Integer, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 from totalatacadot1.database import BaseOracle, BaseSQLite
 
@@ -36,7 +36,6 @@ class ControlPDV(BaseSQLite):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     num_ped_ecf: Mapped[int] = mapped_column(Integer, nullable=False)
-    validated: Mapped[bool] = mapped_column(Boolean, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
@@ -45,7 +44,24 @@ class ControlPDV(BaseSQLite):
     def __repr__(self) -> str:
         return (
             f"ControlPDV(num_ped_ecf={self.num_ped_ecf}, "
-            f"validated={self.validated}, "
             f"created_at={self.created_at}, "
             f"updated_at={self.updated_at})"
+        )
+
+
+class NotificationModel(BaseSQLite):
+    __tablename__ = "Notification"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ticket_code: Mapped[str] = mapped_column(String(120), nullable=False)
+    sent: Mapped[bool] = mapped_column(Boolean, default=False)
+    data: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    def __repr__(self) -> str:
+        return (
+            f"Notification(id={self.id}, "
+            f"ticket_code={self.ticket_code}, "
+            f"data={self.data}, "
+            f"created_at={self.created_at})"
         )

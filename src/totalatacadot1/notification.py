@@ -4,7 +4,7 @@ import json
 from loguru import logger
 
 from totalatacadot1.config import get_url_notification
-from totalatacadot1.enums import CommandType
+from totalatacadot1.repository import create_notification_item, update_notification_item_sent
 
 
 @dataclass
@@ -45,13 +45,17 @@ class Notification():
             response.raise_for_status()  # Levanta um erro para status HTTP ruins (4xx ou 5xx)
 
             logger.info(f"Notificação enviada com sucesso para {url}. Resposta: {response.status_code}")
-
+            update_notification_item_sent(self.ticket_code)
         except requests.exceptions.Timeout:
             logger.warning("Timeout ao enviar notificação.")
+            create_notification_item(self.to_dict())
         except requests.exceptions.ConnectionError:
             logger.warning("Não foi possível conectar ao servidor de notificação.")
+            create_notification_item(self.to_dict())
         except requests.exceptions.RequestException as e:
             logger.error(f"Erro ao enviar notificação: {e}")
+            create_notification_item(self.to_dict())
         except Exception as e:
             logger.error(f"Erro inesperado ao enviar notificação: {e}")
+            create_notification_item(self.to_dict())
 
