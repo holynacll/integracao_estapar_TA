@@ -125,7 +125,7 @@ class EstaparIntegrationService:
             return self._parse_response(response_payload, request_data.cmd_seq_no)
 
         except socket.timeout:
-            error_msg = f"Timeout ({timeout}s) na comunicação com o servidor."
+            error_msg = f"Timeout na comunicação com o servidor."
             logger.error(error_msg)
             return ResponseReturn(False, error_msg)
 

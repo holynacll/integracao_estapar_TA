@@ -1,4 +1,3 @@
-# controller_gui.py
 import sys
 import traceback
 from loguru import logger
@@ -6,14 +5,14 @@ from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PySide6.QtCore import QObject, Signal, Slot, QTimer
 from PySide6.QtGui import QIcon, QAction
 
-from .config import get_assets_path, IP, PORT
-from .gui.main_window import MainWindow
-from .custom_message_box import CustomMessageBox
-from .notification import Notification
-from .repository import get_last_pdv_pedido
-from .schemas import DiscountRequest
-from .enums import CommandType
-from .estapar_integration_service import EstaparIntegrationService
+from ..config import get_assets_path, IP, PORT
+from ..gui.main_window import MainWindow
+from ..components.custom_message_box import CustomMessageBox
+from ..notification import Notification
+from ..repository import get_last_pdv_pedido
+from ..schemas import DiscountRequest
+from ..enums import CommandType
+from ..services.estapar_integration_service import EstaparIntegrationService
 
 
 class AppController(QObject):
@@ -55,8 +54,8 @@ class AppController(QObject):
         self.tray_icon.show()
         self.tray_icon.activated.connect(self.on_tray_icon_activated)
 
-    @Slot(dict)
-    def handle_process_request(self, form_data):
+    @Slot(dict) # type: ignore
+    def handle_process_request(self, form_data: dict) -> None:
         """Lida com a lógica de negócio de processar o ticket."""
         ticket_code = form_data["ticket_code"]
         operation_type = form_data["operation_type"]
@@ -160,13 +159,13 @@ class AppController(QObject):
             )
             notification.notify_discount()
 
-    @Slot()
+    @Slot() # type: ignore
     def on_tray_icon_activated(self, reason):
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
             self.show_gui() if not self.window.isVisible() else self.hide_gui()
 
-    @Slot()
-    def emit_actual_valor_update(self, valor):
+    @Slot(float) # type: ignore
+    def emit_actual_valor_update(self, valor: float):
         self.actual_valor_updated.emit(valor)
 
     @Slot()

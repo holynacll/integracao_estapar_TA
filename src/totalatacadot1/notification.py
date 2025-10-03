@@ -47,9 +47,9 @@ class Notification():
             logger.info(f"Notificação enviada com sucesso para {url}. Resposta: {response.status_code}")
 
         except requests.exceptions.Timeout:
-            logger.warning(f"Timeout ao enviar notificação para {url}.")
+            logger.warning("Timeout ao enviar notificação.")
         except requests.exceptions.ConnectionError:
-            logger.warning(f"Não foi possível conectar ao servidor de notificação em {url}.")
+            logger.warning("Não foi possível conectar ao servidor de notificação.")
         except requests.exceptions.RequestException as e:
             logger.error(f"Erro ao enviar notificação: {e}")
         except Exception as e:

@@ -7,7 +7,7 @@ from pathlib import Path
 from loguru import logger
 
 from time import sleep
-from totalatacadot1.controller_gui import AppController
+from totalatacadot1.controllers.app_controller import AppController
 from totalatacadot1.database import init_db
 from totalatacadot1.models import PCPEDCECF, ControlPDV
 from totalatacadot1.repository import (
