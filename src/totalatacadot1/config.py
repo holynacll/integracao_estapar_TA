@@ -1,8 +1,5 @@
 from pathlib import Path
 
-# IP = "127.0.0.1"
-# PORT = 33535
-
 # Estapar API
 IP = "10.7.39.10"
 PORT = 3000
@@ -28,4 +25,3 @@ def get_orcl_instant_client_path_zipped() -> Path:
 
 
 def get_url_notification() -> str:
-    return "http://192.168.211.249:8000"

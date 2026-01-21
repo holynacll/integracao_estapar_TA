@@ -68,7 +68,7 @@ sqlite_engine = None
 for database_url in DATABASE_URLS:
     try:
         oracle_engine = create_engine(
-            database_url, echo=True
+            database_url, echo=False
         )  # echo=True para logs de SQL no console
         connection = oracle_engine.connect()
         connection.close()
@@ -83,7 +83,7 @@ if oracle_engine is None:
 # Configuração do engine do SQLite
 sqlite_engine = create_engine(
     SQLITE_URL,
-    echo=True,
+    echo=False,
     connect_args={
         "check_same_thread": False
     },  # Necessário para SQLite em aplicações multi-thread

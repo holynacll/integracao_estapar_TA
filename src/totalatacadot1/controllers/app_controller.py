@@ -1,4 +1,5 @@
 import sys
+import socket
 import traceback
 from loguru import logger
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
@@ -57,6 +58,7 @@ class AppController(QObject):
     @Slot(dict) # type: ignore
     def handle_process_request(self, form_data: dict) -> None:
         """Lida com a lógica de negócio de processar o ticket."""
+        hostname = socket.gethostname()
         ticket_code = form_data["ticket_code"]
         operation_type = form_data["operation_type"]
         parent_widget = form_data["parent_widget"]
@@ -95,8 +97,12 @@ class AppController(QObject):
                     cmd_type=CommandType.VALIDATION,
                 )
                 notification_data = Notification(
-                    ticket_code=ticket_code, operation_type=operation_type, num_caixa=pdv_pedido.num_caixa if pdv_pedido else None,
-                    num_cupom=int(num_cupom), vl_total=valor_total
+                    ticket_code=ticket_code,
+                    operation_type=operation_type,
+                    num_caixa=None,
+                    hostname=hostname,
+                    num_cupom=int(num_cupom),
+                    vl_total=valor_total
                 )
             else:
                 if not pdv_pedido:
@@ -112,8 +118,11 @@ class AppController(QObject):
                     cmd_type=operation_type,
                 )
                 notification_data = Notification(
-                    ticket_code=ticket_code, operation_type="AUTOMATIC_VALIDATION",
-                    num_caixa=pdv_pedido.num_caixa, num_ped_ecf=str(pdv_pedido.num_ped_ecf),
+                    ticket_code=ticket_code,
+                    operation_type="AUTOMATIC_VALIDATION",
+                    num_caixa=pdv_pedido.num_caixa,
+                    hostname=hostname,
+                    num_ped_ecf=str(pdv_pedido.num_ped_ecf),
                     vl_total=float(pdv_pedido.vl_total)
                 )
 
@@ -123,6 +132,11 @@ class AppController(QObject):
             service = EstaparIntegrationService(IP, PORT)
             result = service.create_discount(discount_request)
             logger.debug(f"Resposta da API: {result}")
+
+
+            # print("MOCKANDO resultado do desconto lançado!")
+            # result.message = "MENSAGEM DE SUCESSO MOCKADA"
+            # result.success = True
 
             notification_data.success = result.success
             notification_data.message = result.message

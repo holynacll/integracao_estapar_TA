@@ -41,14 +41,15 @@ def msg_process(mensagem):
         ]  # Pega o cmdSeqNo da mensagem original
 
         resposta = struct.pack(
-            "<HHI15s16sII64sI128s128s128sIHHI",
-            137,  # Tamanho fixo da resposta (137 bytes)
+            "<HHI15s16sIII64sI128s128s128sIHHI",
+            513,  # Tamanho do payload da resposta (513 bytes)
             0,  # rspFiller
             rspType,  # Tipo de resposta
             b"04558054000173".ljust(15, b"\x00"),  # Assinatura da empresa
             b"ESTAPAR".ljust(15, b" ") + b"\x00",  # Nome da empresa (16 bytes total)
             rspTmt,  # Timestamp da resposta
             rspSeqNo,  # Número sequencial (mesmo da requisição)
+            0,  # rspTermId (Novo campo adicionado para alinhar)
             card_id.encode("ascii").ljust(64, b"\x00"),  # Código do cartão
             status,  # Status da operação
             status_msg.encode("ascii").ljust(128, b"\x00"),  # Mensagem para operador

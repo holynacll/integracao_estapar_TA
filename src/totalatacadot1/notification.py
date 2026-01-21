@@ -17,6 +17,7 @@ class Notification():
     num_ped_ecf: str | None = None
     success: bool | None = None
     message: str | None = None
+    hostname: str | None = None
 
     def to_dict(self):
         return {
@@ -26,6 +27,7 @@ class Notification():
             "num_cupom": self.num_cupom,
             "vl_total": self.vl_total,
             "operation_type": self.operation_type,
+            "hostname": self.hostname,
             "success": self.success,
             "message": self.message,
         }
