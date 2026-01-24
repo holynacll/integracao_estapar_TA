@@ -43,7 +43,11 @@ def db_init_setup():
     return db_on
 
 
-def listen_new_pdv_item(controller: AppController):
+def listen_new_pdv_item(controller: AppController, is_active_db: bool):
+    if not is_active_db:
+        logger.warning("Banco de dados desativado. Não será possível verificar novos itens do PDV.")
+        return
+
     last_pdv_pedido: PCPEDCECF | None = get_last_pdv_pedido()
     if last_pdv_pedido is not None:
         controller.emit_actual_valor_update(last_pdv_pedido.vl_total)
@@ -60,33 +64,33 @@ def listen_new_pdv_item(controller: AppController):
 
 
 def listen_notification_not_sent():
-    last_notification_not_sent = get_last_notification_not_sent()
-    if last_notification_not_sent is not None:
-        notification_item = Notification(**last_notification_not_sent.data)
-        notification_item.notify_discount()
+    try:
+        logger.info("Verificando notificações não enviadas...")
+        last_notification_not_sent = get_last_notification_not_sent()
+        if last_notification_not_sent is not None:
+            notification_item = Notification(**last_notification_not_sent.data)
+            notification_item.notify_discount()
+    except Exception as e:
+        logger.error(f"Erro ao processar notificação: {e}")
 
 
-def background_task(controller: AppController):
+def background_task(controller: AppController, is_active_db: bool):
+    logger.info("Iniciando thread de background...")
+    controller.show_gui()
     while True:
         sleep(5)
         listen_notification_not_sent()
-        listen_new_pdv_item(controller)
+        listen_new_pdv_item(controller, is_active_db)
 
 
 def main():
     logger_init_setup()
-    db_on = db_init_setup()
+    is_db_active = db_init_setup()
     controller = AppController()
 
-    # Inicialmente esconder a janela principal, mas manter o ícone na bandeja
-    if db_on:
-        controller.hide_gui()
-
-        # Criar e iniciar a thread que executa a lógica em segundo plano
-        thread = Thread(target=background_task, args=(controller,), daemon=True)
-        thread.start()
-    else:
-        controller.show_gui()
+    # Criar e iniciar a thread que executa a lógica em segundo plano
+    thread = Thread(target=background_task, args=(controller, is_db_active), daemon=True)
+    thread.start()
 
     # Iniciar o loop de eventos do Qt
     controller.run_event_loop()

@@ -59,94 +59,49 @@ class AppController(QObject):
     def handle_process_request(self, form_data: dict) -> None:
         """Lida com a lógica de negócio de processar o ticket."""
         hostname = socket.gethostname()
-        ticket_code = form_data["ticket_code"]
-        operation_type = form_data["operation_type"]
-        parent_widget = form_data["parent_widget"]
-        
+        ticket_code = form_data.get("ticket_code")
+        operation_type = form_data.get("operation_type")
+        parent_widget = form_data.get("parent_widget")
+
+        # Icons
         error_icon_path = str(get_assets_path() / "images" / "warning.png")
         success_icon_path = str(get_assets_path() / "images" / "checked.png")
 
         try:
-            logger.debug("Iniciando processamento de ticket")
+            logger.debug(f"Iniciando processamento de ticket: {ticket_code}, Tipo: {operation_type}")
+            
             if not ticket_code:
                 logger.warning("Ticket vazio recebido")
                 CustomMessageBox("Erro", "Código inválido!\nPor favor, verifique o código e tente novamente.", error_icon_path, parent_widget).exec()
                 return
 
-            pdv_pedido = None
-            if operation_type != "MANUAL_VALIDATION":
-                logger.debug("Consultando último pedido PDV")
-                pdv_pedido = get_last_pdv_pedido()
-
+            # Preparar dados da requisição
             if operation_type == "MANUAL_VALIDATION":
-                num_cupom = form_data["num_cupom"]
-                valor_total = form_data["valor_total"]
-
-                if not num_cupom or not valor_total:
-                    CustomMessageBox("Erro", "Por favor, preencha todos os campos obrigatórios para Validação Manual.", error_icon_path, parent_widget).exec()
-                    return
-                if not num_cupom.isdigit():
-                    CustomMessageBox("Erro", "O número do cupom deve ser um número inteiro.", error_icon_path, parent_widget).exec()
-                    return
-
-                logger.debug(f"Validação Manual - Cupom: {num_cupom}, Valor: {valor_total}")
-                discount_request = DiscountRequest(
-                    cmd_card_id=ticket_code,
-                    cmd_term_id=int(num_cupom),
-                    cmd_op_value=valor_total,
-                    cmd_type=CommandType.VALIDATION,
-                )
-                notification_data = Notification(
-                    ticket_code=ticket_code,
-                    operation_type=operation_type,
-                    num_caixa=None,
-                    hostname=hostname,
-                    num_cupom=int(num_cupom),
-                    vl_total=valor_total
-                )
+                discount_request, notification_data = self._prepare_manual_validation(form_data, ticket_code, hostname, parent_widget, error_icon_path)
             else:
-                if not pdv_pedido:
-                    logger.error("Nenhum pedido PDV encontrado")
-                    CustomMessageBox("Erro", "Não foi possível encontrar um pedido PDV válido.\nPor favor, contate a administração.", error_icon_path, parent_widget).exec()
-                    return
-                
-                logger.debug("Criando requisição automática")
-                discount_request = DiscountRequest(
-                    cmd_card_id=ticket_code,
-                    cmd_term_id=pdv_pedido.num_ped_ecf,
-                    cmd_op_value=pdv_pedido.vl_total,
-                    cmd_type=operation_type,
-                )
-                notification_data = Notification(
-                    ticket_code=ticket_code,
-                    operation_type="AUTOMATIC_VALIDATION",
-                    num_caixa=pdv_pedido.num_caixa,
-                    hostname=hostname,
-                    num_ped_ecf=str(pdv_pedido.num_ped_ecf),
-                    vl_total=float(pdv_pedido.vl_total)
-                )
+                discount_request, notification_data = self._prepare_automatic_validation(operation_type, ticket_code, hostname, parent_widget, error_icon_path)
 
+            if not discount_request:
+                return  # Erro já foi tratado nos helpers
+
+            # Validação do Objeto de Requisição
             discount_request.validate()
-            
+
+            # Executar Serviço
             logger.debug("Enviando requisição para API Estapar")
             service = EstaparIntegrationService(IP, PORT)
             result = service.create_discount(discount_request)
             logger.debug(f"Resposta da API: {result}")
 
+            # Atualizar e enviar notificação
+            if notification_data:
+                notification_data.success = result.success
+                notification_data.message = result.message
+                notification_data.notify_discount()
 
-            # print("MOCKANDO resultado do desconto lançado!")
-            # result.message = "MENSAGEM DE SUCESSO MOCKADA"
-            # result.success = True
-
-            notification_data.success = result.success
-            notification_data.message = result.message
-            notification_data.notify_discount()
-
+            # Feedback para o usuário
             if result.success:
-                success_title = "Operação Realizada com Sucesso"
-                if operation_type == "MANUAL_VALIDATION":
-                    success_title = "Validação Manual Realizada"
-                
+                success_title = "Validação Manual Realizada" if operation_type == "MANUAL_VALIDATION" else "Operação Realizada com Sucesso"
                 msg = f"API Estapar: {result.message}"
                 logger.success(msg)
                 CustomMessageBox(success_title, msg, success_icon_path, parent_widget).exec()
@@ -164,15 +119,87 @@ class AppController(QObject):
             logger.critical(f"Erro inesperado: {str(e)}")
             traceback.print_exc()
             CustomMessageBox("Erro Crítico", "Ocorreu um erro inesperado, verifique os logs.", error_icon_path, parent_widget).exec()
-            # Notificação de erro crítico
-            notification = Notification(
-                ticket_code=ticket_code if 'ticket_code' in locals() else 'N/A',
-                operation_type=operation_type if 'operation_type' in locals() else 'UNKNOWN',
-                vl_total=0.0,
-                success=False, message=f"Erro inesperado: {str(e)}"
-            )
-            notification.notify_discount()
+            
+            # Tenta notificar erro crítico se tiver dados mínimos
+            try:
+                Notification(
+                    ticket_code=ticket_code or 'N/A',
+                    operation_type=operation_type or 'UNKNOWN',
+                    vl_total=0.0,
+                    success=False,
+                    message=f"Erro inesperado: {str(e)}"
+                ).notify_discount()
+            except Exception:
+                pass
 
+
+    def _prepare_manual_validation(self, form_data, ticket_code, hostname, parent_widget, icon_path):
+        num_cupom = form_data.get("num_cupom")
+        valor_total = form_data.get("valor_total")
+
+        if not num_cupom or not valor_total:
+            CustomMessageBox("Erro", "Por favor, preencha todos os campos obrigatórios para Validação Manual.", icon_path, parent_widget).exec()
+            return None, None
+        
+        if not num_cupom.isdigit():
+            CustomMessageBox("Erro", "O número do cupom deve ser um número inteiro.", icon_path, parent_widget).exec()
+            return None, None
+
+        logger.debug(f"Validação Manual - Cupom: {num_cupom}, Valor: {valor_total}")
+        
+        req = DiscountRequest(
+            cmd_card_id=ticket_code,
+            cmd_term_id=0,
+            cmd_op_seq_no=int(num_cupom),
+            cmd_seq_no=0,
+            cmd_op_value=float(valor_total),
+            cmd_type=CommandType.VALIDATION,
+        )
+
+        notif = Notification(
+            ticket_code=ticket_code,
+            operation_type="MANUAL_VALIDATION",
+            num_caixa=0,
+            hostname=hostname,
+            num_cupom=int(num_cupom),
+            num_ped_ecf="0",
+            vl_total=float(valor_total)
+        )
+        return req, notif
+
+    def _prepare_automatic_validation(self, operation_type, ticket_code, hostname, parent_widget, icon_path):
+        logger.debug("Consultando último pedido PDV")
+        pdv_pedido = get_last_pdv_pedido()
+        
+        if not pdv_pedido:
+            logger.error("Nenhum pedido PDV encontrado")
+            CustomMessageBox("Erro", "Não foi possível encontrar um pedido PDV válido.\nPor favor, contate a administração.", icon_path, parent_widget).exec()
+            return None, None
+
+        num_caixa = pdv_pedido.num_caixa
+        num_pedido = pdv_pedido.num_ped_ecf
+        valor_total = pdv_pedido.vl_total
+        
+        logger.debug("Criando requisição automática")
+        
+        req = DiscountRequest(
+            cmd_card_id=ticket_code,
+            cmd_term_id=num_caixa,
+            cmd_seq_no=num_pedido,
+            cmd_op_seq_no=0,
+            cmd_op_value=valor_total,
+            cmd_type=operation_type,
+        )
+
+        notif = Notification(
+            ticket_code=ticket_code,
+            operation_type="AUTOMATIC_VALIDATION",
+            num_caixa=num_caixa,
+            hostname=hostname,
+            num_ped_ecf=str(num_pedido),
+            vl_total=float(valor_total)
+        )
+        return req, notif
     @Slot() # type: ignore
     def on_tray_icon_activated(self, reason):
         if reason == QSystemTrayIcon.ActivationReason.Trigger:

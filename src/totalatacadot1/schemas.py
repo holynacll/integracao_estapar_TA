@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from datetime import datetime, UTC
 import struct
 from typing import Optional
 import time
@@ -13,7 +12,7 @@ class DiscountRequest:
     cmd_card_id: str  # código de barras do cartão
     cmd_op_value: float  # em reais
     cmd_signature: str = "04558054000173"  # Fiscal Document CNPJ
-    cmd_op_seq_no: int = 0  # numcupom / get next number / zero por enquanto
+    cmd_op_seq_no: int = 0  # numcupom
     cmd_ruf_0: int = 0xFFFFFFFF
     cmd_ruf_1: int = 0xFFFFFFFF
     cmd_sale_type: int = 0xFFFFFFFF
@@ -24,7 +23,7 @@ class DiscountRequest:
     cmd_tmt: int = int(time.time())
     cmd_type: CommandType = CommandType.VALIDATION
     cmd_company_sign: bytes = b"ESTAPAR" + b" " * 8 + b"\x00"  # 16 bytes total
-    cmd_seq_no: int = 0
+    cmd_seq_no: int = 0 # num_ped_ecf
 
     def __repr__(self):
         return f"""DiscountRequest(
@@ -49,14 +48,10 @@ class DiscountRequest:
         """Validação consolidada como no C#"""
         if self.cmd_op_value < 40:
             raise ValueError("Valor da compra deve ser maior ou igual que R$ 40,00")
-        if self.cmd_term_id <= 0:
-            raise ValueError("TerminalId inválido")
         if not self.cmd_card_id or self.cmd_card_id.strip() == "":
             raise ValueError("Cartão inválido")
         if not self.cmd_signature or self.cmd_signature.strip() == "":
             raise ValueError("Documento fiscal inválido")
-        # if not validar_cnpj(self.cmd_signature):
-        #     raise ValueError("Documento fiscal inválido (CNPJ inválido)")
 
     def serialize(self) -> bytes:
         """Serialização final corrigida para corresponder exatamente ao protocolo Estapar"""
@@ -107,26 +102,9 @@ class DiscountResponse:
         """Retorna uma string formatada com os detalhes da resposta."""
         lines = ["Detalhes Adicionais:"] # Cabeçalho para os detalhes
 
-        # Formata a data/hora de entrada (se disponível)
-        # if self.entry_timestamp is not None:
-        #     try:
-        #         dt_object = datetime.fromtimestamp(self.entry_timestamp, UTC)
-        #         # Formato mais comum no Brasil: DD/MM/AAAA HH:MM:SS
-        #         formatted_time = dt_object.strftime("%d/%m/%Y %H:%M:%S") 
-        #         lines.append(f"    Data/Hora de Entrada: {formatted_time}")
-        #     except (TypeError, ValueError):
-        #          # Caso o timestamp seja inválido por algum motivo
-        #          lines.append(f"    Data/Hora de Entrada: (timestamp inválido: {self.entry_timestamp})")
-        # else:
-        #     # Se não houver timestamp na resposta
-        #     lines.append("    Data/Hora de Entrada: Não informada")
-
         # Formata o tipo de veículo (se disponível)
         vehicle_display = self.vehicle_type if self.vehicle_type is not None else "Não informado"
         lines.append(f"    Tipo de Veículo: {vehicle_display}")
-
-        # Adiciona o status parseado para clareza (opcional)
-        # lines.append(f"    Status Detalhado: {self.status.name}") 
 
         # Retorna as linhas unidas por quebra de linha
         # Só retorna os detalhes se houver mais do que o cabeçalho

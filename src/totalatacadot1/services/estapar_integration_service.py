@@ -58,6 +58,19 @@ class EstaparIntegrationService:
         "I"  # rspRUF_2 (4 bytes, unsigned int) - Reserved
     )
 
+    # Mapeamento baseado na documentação (pág 8)
+    _STATUS_MAPPING = {
+        0x00000000: (ResponseStatus.VALIDATED, "Cartão validado com sucesso", True),
+        0x00000001: (ResponseStatus.INVALID_CARD, "Cartão não validado", False),
+        0x00000002: (ResponseStatus.ALREADY_VALIDATED, "Cartão já validado", False),
+        0x00000003: (ResponseStatus.INSUFFICIENT_VALUE, "Valor da compra insuficiente para validação", False),
+        0x00000004: (ResponseStatus.INVALID_CARD, "Cartão inválido", False),
+        0x00000005: (ResponseStatus.INVALID_COMMAND, "Comando inválido", False),
+        0x00000006: (ResponseStatus.INVALID_OPERATION, "Operação inválida", False),
+        0x00000007: (ResponseStatus.UNREGISTERED_TERMINAL, "Terminal não cadastrado", False),
+        0x00000008: (ResponseStatus.DISCOUNT_TIME_EXCEEDED, "Tempo de desconto excedido", False),
+    }
+
     def __init__(self, ip: str, port: int):
         self.server_ip = ip
         self.server_port = port
@@ -246,7 +259,6 @@ class EstaparIntegrationService:
                 logger.error(
                     f"Tamanho incorreto do payload da resposta! Recebido: {len(response_payload)}, Esperado: {expected_size}. Parse abortado."
                 )
-                # Log the mismatched payload for analysis
                 self._log_message(
                     response_payload, "Payload da resposta com tamanho incorreto"
                 )
@@ -269,163 +281,71 @@ class EstaparIntegrationService:
         # 3. Mapear os dados desempacotados para variáveis nomeadas
         try:
             (
-                rsp_filler,  # Ignorado
-                rsp_type,
-                rsp_signature_b,
-                rsp_company_sign_b,
-                rsp_tmt,
-                rsp_seq_no,
-                rsp_term_id,
-                rsp_card_id_b,
-                rsp_status_code,  # <<< O código de status numérico
-                rsp_op_display_txt_b,
-                rsp_cust_display_txt_b,
-                rsp_printer_line_txt_b,
-                rsp_entry_timestamp,
-                rsp_vehicle_type_code,
-                rsp_ruf_1,  # Ignorado
-                rsp_ruf_2,  # Ignorado
-            ) = unpacked_data
+                rsp_type, rsp_signature_b, rsp_company_sign_b, rsp_tmt, rsp_seq_no,
+                rsp_term_id, rsp_card_id_b, rsp_status_code,
+                rsp_op_display_txt_b, rsp_cust_display_txt_b, rsp_printer_line_txt_b,
+                rsp_entry_timestamp, rsp_vehicle_type_code, _, _
+            ) = (
+                unpacked_data[1], unpacked_data[2], unpacked_data[3], unpacked_data[4], unpacked_data[5],
+                unpacked_data[6], unpacked_data[7], unpacked_data[8],
+                unpacked_data[9], unpacked_data[10], unpacked_data[11],
+                unpacked_data[12], unpacked_data[13], unpacked_data[14], unpacked_data[15]
+            )
 
             # 4. Decodificar campos de string (bytes -> str) com segurança
-            # Usando latin-1 como fallback para evitar erros de ascii
-            rsp_signature = safe_decode(rsp_signature_b)
-            rsp_company_sign = safe_decode(rsp_company_sign_b)
-            rsp_card_id = safe_decode(rsp_card_id_b)
-            rsp_op_display_txt = safe_decode(rsp_op_display_txt_b)
-            rsp_cust_display_txt = safe_decode(rsp_cust_display_txt_b)
-            rsp_printer_line_txt = safe_decode(
-                rsp_printer_line_txt_b
-            )  # Este costuma ter a msg principal
+            rsp_printer_line_txt = safe_decode(rsp_printer_line_txt_b)
 
             # 5. Logar os valores parseados para depuração
             logger.debug(
                 f"Parse da Resposta - Status Code: {rsp_status_code} (0x{rsp_status_code:08X})"
             )
-            logger.debug(
-                f"Parse da Resposta - SeqNo Recebido: {rsp_seq_no} (Esperado: {expected_seq_no})"
-            )
-            logger.debug(f"Parse da Resposta - Card ID: '{rsp_card_id}'")
-            logger.debug(f"Parse da Resposta - Op Display: '{rsp_op_display_txt}'")
-            logger.debug(f"Parse da Resposta - Cust Display: '{rsp_cust_display_txt}'")
-            logger.debug(f"Parse da Resposta - Printer Line: '{rsp_printer_line_txt}'")
-            logger.debug(f"Parse da Resposta - Entry TS: {rsp_entry_timestamp}")
-            logger.debug(f"Parse da Resposta - Vehicle Code: {rsp_vehicle_type_code}")
 
             # 6. Validar número de sequência
             if rsp_seq_no != expected_seq_no:
                 logger.warning(
                     f"Número de sequência da resposta ({rsp_seq_no}) não corresponde ao esperado ({expected_seq_no})!"
                 )
-                # Decidir se isso é um erro fatal ou apenas um aviso
 
             # 7. Mapear rsp_status_code para ResponseStatus enum e mensagem
             success = False
             message = f"Status desconhecido: {rsp_status_code}"
-            response_status_enum = ResponseStatus.UNKNOWN  # Default
+            response_status_enum = ResponseStatus.UNKNOWN
 
-            # Mapeamento baseado na documentação (pág 8)
-            status_map = {
-                0x00000000: (
-                    ResponseStatus.VALIDATED,
-                    "Cartão validado com sucesso",
-                    True,
-                ),
-                0x00000001: (
-                    ResponseStatus.INVALID_CARD,
-                    "Cartão não validado",
-                    False,
-                ),  # Ou "Cartão Inválido"
-                0x00000002: (
-                    ResponseStatus.ALREADY_VALIDATED,
-                    "Cartão já validado",
-                    False,
-                ),
-                0x00000003: (
-                    ResponseStatus.INSUFFICIENT_VALUE,
-                    "Valor da compra insuficiente para validação",
-                    False,
-                ),
-                0x00000004: (
-                    ResponseStatus.INVALID_CARD,
-                    "Cartão inválido",
-                    False,
-                ),  # Repetido? Usar INVALID_CARD
-                0x00000005: (ResponseStatus.INVALID_COMMAND, "Comando inválido", False),
-                0x00000006: (
-                    ResponseStatus.INVALID_OPERATION,
-                    "Operação inválida",
-                    False,
-                ),
-                0x00000007: (
-                    ResponseStatus.UNREGISTERED_TERMINAL,
-                    "Terminal não cadastrado",
-                    False,
-                ),  # Nota: Doc tem 7 duas vezes
-                0x00000008: (
-                    ResponseStatus.DISCOUNT_TIME_EXCEEDED,
-                    "Tempo de desconto excedido",
-                    False,
-                ),
-                # Adicionar outros códigos se existirem
-            }
-            # Tratar o segundo 0x00000007 -> Tipo de cartão inválido
-            if rsp_status_code == 0x00000007:
-                # Verificar qual mensagem faz mais sentido, ou usar um status específico
-                # Se rspPrinterLineTxt contiver "Tipo de cartao invalido", usar esse status
-                if "Tipo de cartao invalido" in rsp_printer_line_txt:
-                    response_status_enum = (
-                        ResponseStatus.INVALID_CARD_TYPE
-                    )  # Adicionar este enum se necessário
-                    message = "Tipo de cartão inválido"
-                    success = False
-                else:  # Senão, assumir Terminal não cadastrado
-                    response_status_enum, message, success = status_map[rsp_status_code]
-            elif rsp_status_code in status_map:
-                response_status_enum, message, success = status_map[rsp_status_code]
-            else:
-                logger.warning(
-                    f"Código de status não mapeado recebido: {rsp_status_code}"
-                )
-                # Manter success=False e a mensagem padrão "Status desconhecido"
+            if rsp_status_code in self._STATUS_MAPPING:
+                response_status_enum, message, success = self._STATUS_MAPPING[rsp_status_code]
+            
+            # Tratar caso especial de código 0x00000007 com mensagem específica
+            if rsp_status_code == 0x00000007 and "Tipo de cartao invalido" in rsp_printer_line_txt:
+                response_status_enum = ResponseStatus.INVALID_CARD_TYPE
+                message = "Tipo de cartão inválido"
+                success = False
 
-            # 8. Mapear vehicle type code (Opcional, mas bom ter)
+            # 8. Mapear vehicle type code
             vehicle_type_str = None
-            if rsp_vehicle_type_code == 0x0001:  # 1
-                vehicle_type_str = (
-                    VehicleType.MOTO.value
-                )  # Assumindo enum VehicleType.MOTO = "Moto"
-            elif rsp_vehicle_type_code == 0x0002:  # 2
-                vehicle_type_str = (
-                    VehicleType.CARRO.value
-                )  # Assumindo enum VehicleType.CARRO = "Carro"
+            if rsp_vehicle_type_code == 0x0001:
+                vehicle_type_str = VehicleType.MOTO.value
+            elif rsp_vehicle_type_code == 0x0002:
+                vehicle_type_str = VehicleType.CARRO.value
 
             # 9. Construir o objeto DiscountResponse
             discount_response = DiscountResponse(
                 status=response_status_enum,
-                message=rsp_printer_line_txt
-                or message,  # Usar texto da impressora se disponível, senão o mapeado
-                entry_timestamp=rsp_entry_timestamp
-                if rsp_entry_timestamp != 0
-                else None,  # Não mostrar 0 se não houver timestamp
+                message=rsp_printer_line_txt or message,
+                entry_timestamp=rsp_entry_timestamp if rsp_entry_timestamp != 0 else None,
                 vehicle_type=vehicle_type_str,
             )
 
-            # 10. Construir e retornar o ResponseReturn final
-            final_message = (
-                discount_response.message
-            )  # Usar a mensagem final do DiscountResponse
+            # 10. Retornar
             logger.info(
-                f"Resposta processada - Sucesso: {success}, Status: {response_status_enum.name}, Mensagem: '{final_message}'"
+                f"Resposta processada - Sucesso: {success}, Status: {response_status_enum.name}, Mensagem: '{discount_response.message}'"
             )
             return ResponseReturn(
-                success=success, message=final_message, data=discount_response
+                success=success, message=discount_response.message, data=discount_response
             )
 
         except Exception as ex:
             error_msg = f"Erro inesperado durante o parse da resposta: {str(ex)}"
             logger.error(f"{error_msg}\n{traceback.format_exc()}")
-            # Logar os dados brutos que causaram o erro de parse
             self._log_message(
                 response_payload,
                 "Payload da resposta que causou erro de parse inesperado",
