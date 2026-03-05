@@ -60,7 +60,7 @@ class DiscountRequest:
             "<I64sIIIIIIII",
             self.cmd_term_id,  # 4 bytes
             self.cmd_card_id.encode("ascii").ljust(64, b"\x00"),  # 64 bytes
-            int(self.cmd_op_value * 100),  # 4 bytes
+            int(round(self.cmd_op_value * 100)),  # 4 bytes
             self.cmd_op_seq_no,  # 4 bytes
             self.cmd_ruf_0,  # 4 bytes
             self.cmd_ruf_1,  # 4 bytes

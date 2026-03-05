@@ -177,6 +177,7 @@ class AppController(QObject):
             return None, None
 
         num_caixa = pdv_pedido.num_caixa
+        num_cupom = pdv_pedido.num_cupom
         num_pedido = pdv_pedido.num_ped_ecf
         valor_total = pdv_pedido.vl_total
         
@@ -186,7 +187,7 @@ class AppController(QObject):
             cmd_card_id=ticket_code,
             cmd_term_id=num_caixa,
             cmd_seq_no=num_pedido,
-            cmd_op_seq_no=0,
+            cmd_op_seq_no=int(num_cupom),
             cmd_op_value=valor_total,
             cmd_type=operation_type,
         )
@@ -196,6 +197,7 @@ class AppController(QObject):
             operation_type="AUTOMATIC_VALIDATION",
             num_caixa=num_caixa,
             hostname=hostname,
+            num_cupom=int(num_cupom),
             num_ped_ecf=str(num_pedido),
             vl_total=float(valor_total)
         )
