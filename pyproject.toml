@@ -9,6 +9,7 @@ dependencies = [
     "briefcase>=0.3.22",
     "loguru>=0.7.3",
     "oracledb>=3.0.0",
+    "pydantic-settings>=2.13.1",
     "pyside6>=6.8.2.1",
     "python-dotenv>=1.0.1",
     "qt-material>=2.14",

@@ -45,12 +45,12 @@ python src/totalatacadot1/app.py
 docker volume create oracle_db_data
 
 docker run -d --name oracle_db \
--p 1521:1521 -p 5500:5500 \
+-p 1521:1521 \
 -e ORACLE_PWD=CAIXA \
 -v oracle_db_data:/opt/oracle/oradata \
-container-registry.oracle.com/database/express:21.3.0-xe
+container-registry.oracle.com/database/free:latest
 
-docker exec -i oracle_db sqlplus sys/CAIXA@//localhost:1521/XEPDB1 as sysdba <<EOF
+docker exec -i oracle_db sqlplus sys/CAIXA@//localhost:1521/FREEPDB1 as sysdba <<EOF
 CREATE USER CAIXA IDENTIFIED BY CAIXA;
 GRANT CREATE SESSION TO CAIXA;
 GRANT CREATE TABLE TO CAIXA;
@@ -59,12 +59,12 @@ GRANT CREATE SEQUENCE TO CAIXA;
 GRANT CREATE PROCEDURE TO CAIXA;
 EOF
 
-docker exec -i oracle_db sqlplus CAIXA/CAIXA@localhost:1521/XEPDB1 as sysdba <<EOF
+docker exec -i oracle_db sqlplus CAIXA/CAIXA@localhost:1521/FREEPDB1 as sysdba <<EOF
 SELECT username FROM dba_users WHERE username = 'CAIXA';
 EOF
 
 ACCESS:
-docker exec -i oracle_db sqlplus CAIXA/CAIXA@localhost:1521/XEPDB1
+docker exec -i oracle_db sqlplus CAIXA/CAIXA@localhost:1521/FREEPDB1
 
 ## Application Structure
 

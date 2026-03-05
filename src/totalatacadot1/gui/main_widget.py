@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QFont, QPixmap
 
 from ..enums import CommandType
-from ..config import get_assets_path
+from ..config import settings
 from .styles import get_stylesheet
 from .theme import is_dark_theme
 
@@ -28,10 +28,10 @@ class MainWidget(QWidget):
     def __init__(self):
         super().__init__()
         self.background_image_path = str(
-            get_assets_path() / "images" / "background-2.jpg"
+            settings.assets_path / "images" / "background-2.jpg"
         )
-        self.success_icon_path = str(get_assets_path() / "images" / "checked.png")
-        self.error_icon_path = str(get_assets_path() / "images" / "warning.png")
+        self.success_icon_path = str(settings.assets_path / "images" / "checked.png")
+        self.error_icon_path = str(settings.assets_path / "images" / "warning.png")
 
         self._dark_theme_active = is_dark_theme()
         logger.info(f"Theme detected: {'Dark' if self._dark_theme_active else 'Light'}")
@@ -71,7 +71,7 @@ class MainWidget(QWidget):
 
         self.operation_combo = QComboBox()
         self.operation_combo.addItem("Validação Automática", CommandType.VALIDATION)
-        self.operation_combo.addItem("Validação Manual", "MANUAL_VALIDATION")
+        # self.operation_combo.addItem("Validação Manual", "MANUAL_VALIDATION")
         self.operation_combo.setFixedHeight(40)
         self.operation_combo.setFont(QFont("Arial", 10))
         self.operation_combo.currentTextChanged.connect(self.on_operation_changed)

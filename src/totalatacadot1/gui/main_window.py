@@ -3,14 +3,14 @@ from PySide6.QtCore import Qt, Slot
 from PySide6.QtWidgets import QMainWindow
 from PySide6.QtGui import QIcon
 
-from ..config import get_assets_path
+from ..config import settings
 from .main_widget import MainWidget
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Total Atacado - Integração Estacionamento")
-        icon_path = str(get_assets_path() / "icons" / "icon")
+        icon_path = str(settings.assets_path / "icons" / "icon")
         self.setWindowIcon(QIcon(icon_path))
         self.setGeometry(100, 100, 1024, 768)
 

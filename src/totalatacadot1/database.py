@@ -6,49 +6,34 @@ import shutil
 from loguru import logger
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
+
+from totalatacadot1.config import settings
+import platform
+import shutil
 import oracledb
-
-from totalatacadot1.config import (
-    get_project_root,
-    get_orcl_instant_client_path,
-    get_orcl_instant_client_path_zipped,
-)
-
 
 def setup_oracle_client():
     if platform.system() == "Windows":
-        oracle_client_path = get_orcl_instant_client_path()
+        oracle_client_path = settings.orcl_instant_client_path
 
         if not oracle_client_path.exists():
-            orcl_instant_client_zip = get_orcl_instant_client_path_zipped()
+            orcl_instant_client_zip = settings.orcl_instant_client_path_zipped
             if orcl_instant_client_zip.exists():
                 shutil.unpack_archive(
-                    str(orcl_instant_client_zip), str(get_project_root())
+                    str(orcl_instant_client_zip), str(settings.project_root)
                 )
 
         if oracle_client_path.exists():  # Verifica novamente após extração
             oracledb.init_oracle_client(lib_dir=str(oracle_client_path))
 
-
 setup_oracle_client()
 
-# from dotenv import load_dotenv
-
-# load_dotenv()
-
-# Configuração do banco de dados
-ORACLE_USER = "CAIXA"
-ORACLE_PASSWORD = "CAIXA"
-ORACLE_HOST = "localhost"
-ORACLE_PORT = "1521"
-
 DATABASE_URLS = [
-    f"oracle+oracledb://{ORACLE_USER}:{ORACLE_PASSWORD}@{ORACLE_HOST}:{ORACLE_PORT}/?service_name=XEPDB1",
-    f"oracle+oracledb://{ORACLE_USER}:{ORACLE_PASSWORD}@{ORACLE_HOST}:{ORACLE_PORT}/XE",
+    f"oracle+oracledb://{settings.oracle_user}:{settings.oracle_password}@{settings.oracle_host}:{settings.oracle_port}/?service_name={settings.oracle_sid}"
 ]
 
 # Configurações do banco de dados SQLite
-SQLITE_DB_PATH = Path(get_project_root()) / "data" / "control_pdv.db"
+SQLITE_DB_PATH = Path(settings.project_root) / "data" / "control_pdv.db"
 SQLITE_DB_PATH.parent.mkdir(
     parents=True, exist_ok=True
 )  # Cria o diretório se não existir

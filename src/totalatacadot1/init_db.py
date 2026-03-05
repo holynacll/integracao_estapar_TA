@@ -1,6 +1,14 @@
+import sys
+from pathlib import Path
+# Pega o caminho absoluto da pasta 'src' e adiciona no PATH do Python
+src_path = Path(__file__).resolve().parent.parent
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+
+# Importações
 from loguru import logger
 from totalatacadot1.database import OracleSessionLocal
-from totalatacadot1.models import PCPEDCECF
+from .models import PCPEDCECF
 from datetime import datetime
 
 
@@ -19,7 +27,7 @@ def populate_pdv():
         # Inserindo registros iniciais
         pdv_data = [
             PCPEDCECF(
-                num_ped_ecf=13944,
+                num_ped_ecf=13954,
                 num_caixa=303,
                 data=datetime.strptime("1/7/25 0:00", "%m/%d/%y %H:%M").strftime(
                     "%m/%d/%y %H:%M"
@@ -28,7 +36,7 @@ def populate_pdv():
                     "%H:%M:%S"
                 ),
                 num_cupom=10429,
-                vl_total=12.69,
+                vl_total=120.69,
             ),
             # PCPEDCECF(
             #     num_ped_ecf=11445,

@@ -3,7 +3,7 @@ import requests
 import json
 from loguru import logger
 
-from totalatacadot1.config import get_url_notification
+from totalatacadot1.config import settings
 from totalatacadot1.repository import create_notification_item, update_notification_item_sent
 
 
@@ -40,7 +40,7 @@ class Notification():
             notification_data = self.to_dict()
             json_data = json.dumps(notification_data)
             headers = {"Content-Type": "application/json"}
-            url = get_url_notification() + '/items'
+            url = settings.url_notification + '/items'
 
             # Envia a requisição POST
             response = requests.post(url, data=json_data, headers=headers, timeout=5)

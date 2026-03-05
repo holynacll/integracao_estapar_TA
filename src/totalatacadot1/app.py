@@ -7,6 +7,7 @@ from pathlib import Path
 from loguru import logger
 
 from time import sleep
+from totalatacadot1.config import settings
 from totalatacadot1.controllers.app_controller import AppController
 from totalatacadot1.database import init_db
 from totalatacadot1.models import PCPEDCECF, ControlPDV
@@ -83,8 +84,25 @@ def background_task(controller: AppController, is_active_db: bool):
         listen_new_pdv_item(controller, is_active_db)
 
 
+def print_inital_configuration():
+    logger.info("Configurações iniciais:")
+    logger.info(f"IP da API Estapar: {settings.estapar_ip}")
+    logger.info(f"Porta da API Estapar: {settings.estapar_port}")
+    logger.info(f"Usuário do banco de dados Oracle: {settings.oracle_user}")
+    logger.info(f"Senha do banco de dados Oracle: {settings.oracle_password}")
+    logger.info(f"Host do banco de dados Oracle: {settings.oracle_host}")
+    logger.info(f"Porta do banco de dados Oracle: {settings.oracle_port}")
+    logger.info(f"URL de notificação: {settings.url_notification}")
+    logger.info(f"Caminho da raiz do projeto: {settings.project_root}")
+    logger.info(f"Caminho dos assets: {settings.assets_path}")
+    logger.info(f"Caminho das imagens: {settings.images_path}")
+    logger.info(f"Caminho do Instant Client: {settings.orcl_instant_client_path}")
+    logger.info(f"Caminho do Instant Client zipado: {settings.orcl_instant_client_path_zipped}")
+
+
 def main():
     logger_init_setup()
+    print_inital_configuration()
     is_db_active = db_init_setup()
     controller = AppController()
 

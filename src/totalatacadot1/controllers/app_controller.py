@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PySide6.QtCore import QObject, Signal, Slot, QTimer
 from PySide6.QtGui import QIcon, QAction
 
-from ..config import get_assets_path, IP, PORT
+from ..config import settings
 from ..gui.main_window import MainWindow
 from ..components.custom_message_box import CustomMessageBox
 from ..notification import Notification
@@ -40,7 +40,7 @@ class AppController(QObject):
 
     def setup_tray_icon(self):
         self.tray_icon = QSystemTrayIcon(self.app)
-        icon_path = str(get_assets_path() / "icons" / "icon.ico")
+        icon_path = str(settings.assets_path / "icons" / "icon.ico")
         self.tray_icon.setIcon(QIcon(icon_path))
 
         tray_menu = QMenu()
@@ -64,8 +64,8 @@ class AppController(QObject):
         parent_widget = form_data.get("parent_widget")
 
         # Icons
-        error_icon_path = str(get_assets_path() / "images" / "warning.png")
-        success_icon_path = str(get_assets_path() / "images" / "checked.png")
+        error_icon_path = str(settings.assets_path / "images" / "warning.png")
+        success_icon_path = str(settings.assets_path / "images" / "checked.png")
 
         try:
             logger.debug(f"Iniciando processamento de ticket: {ticket_code}, Tipo: {operation_type}")
@@ -89,7 +89,7 @@ class AppController(QObject):
 
             # Executar Serviço
             logger.debug("Enviando requisição para API Estapar")
-            service = EstaparIntegrationService(IP, PORT)
+            service = EstaparIntegrationService(settings.estapar_ip, settings.estapar_port)
             result = service.create_discount(discount_request)
             logger.debug(f"Resposta da API: {result}")
 
