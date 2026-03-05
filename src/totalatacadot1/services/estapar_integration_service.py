@@ -98,8 +98,9 @@ class EstaparIntegrationService:
         Envia uma requisição de desconto para a API da Estapar
         e processa a resposta
         """
-        # Assign the next sequence number to the request before serializing
-        request_data.cmd_seq_no = self._get_next_sequence_number()
+        if request_data.cmd_seq_no == 0:
+            # Assign the next sequence number to the request before serializing
+            request_data.cmd_seq_no = self._get_next_sequence_number()
 
         logger.info(
             f"Enviando requisição de desconto para {self.server_ip}:{self.server_port} (Seq: {request_data.cmd_seq_no})"
