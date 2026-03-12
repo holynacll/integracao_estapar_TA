@@ -29,7 +29,8 @@ def setup_oracle_client():
 setup_oracle_client()
 
 DATABASE_URLS = [
-    f"oracle+oracledb://{settings.oracle_user}:{settings.oracle_password}@{settings.oracle_host}:{settings.oracle_port}/?service_name={settings.oracle_sid}"
+    f"oracle+oracledb://{settings.oracle_user}:{settings.oracle_password}@{settings.oracle_host}:{settings.oracle_port}/?service_name={settings.oracle_sid}",
+    f"oracle+oracledb://{settings.oracle_user}:{settings.oracle_password}@{settings.oracle_host}:{settings.oracle_port}/{settings.oracle_sid_alternative_1}",
 ]
 
 # Configurações do banco de dados SQLite

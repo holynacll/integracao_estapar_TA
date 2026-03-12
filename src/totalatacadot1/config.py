@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     oracle_host: str = "localhost"
     oracle_port: str = "1521"
     oracle_sid: str = "XEPDB1"
+    oracle_sid_alternative_1 = "XE"
 
     # URL Notificação
     url_notification: str = "http://192.168.211.249:8000"
