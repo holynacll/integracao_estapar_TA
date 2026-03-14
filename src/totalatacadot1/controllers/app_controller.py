@@ -1,18 +1,19 @@
-import sys
 import socket
+import sys
 import traceback
-from loguru import logger
-from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
-from PySide6.QtCore import QObject, Signal, Slot, QTimer
-from PySide6.QtGui import QIcon, QAction
 
-from ..config import settings
-from ..gui.main_window import MainWindow
+from loguru import logger
+from PySide6.QtCore import QObject, QTimer, Signal, Slot
+from PySide6.QtGui import QAction, QIcon
+from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
+
 from ..components.custom_message_box import CustomMessageBox
-from ..notification import Notification
-from ..repository import get_last_pdv_pedido
-from ..schemas import DiscountRequest
+from ..config import settings
 from ..enums import CommandType
+from ..gui.main_window import MainWindow
+from ..notification import Notification
+from ..repository import create_notification_item, get_last_pdv_pedido
+from ..schemas import DiscountRequest
 from ..services.estapar_integration_service import EstaparIntegrationService
 
 
@@ -32,7 +33,7 @@ class AppController(QObject):
         self.request_hide_gui.connect(self._hide_gui)
         self.request_shutdown.connect(self._shutdown)
         self.actual_valor_updated.connect(self.window.update_actual_valor)
-        
+
         # Conecta o sinal de processamento do widget ao handler do controlador
         self.window.main_widget.process_request.connect(self.handle_process_request)
 
@@ -55,7 +56,7 @@ class AppController(QObject):
         self.tray_icon.show()
         self.tray_icon.activated.connect(self.on_tray_icon_activated)
 
-    @Slot(dict) # type: ignore
+    @Slot(dict)  # type: ignore
     def handle_process_request(self, form_data: dict) -> None:
         """Lida com a lógica de negócio de processar o ticket."""
         hostname = socket.gethostname()
@@ -68,18 +69,35 @@ class AppController(QObject):
         success_icon_path = str(settings.assets_path / "images" / "checked.png")
 
         try:
-            logger.debug(f"Iniciando processamento de ticket: {ticket_code}, Tipo: {operation_type}")
-            
+            logger.debug(
+                f"Iniciando processamento de ticket: {ticket_code}, Tipo: {operation_type}"
+            )
+
             if not ticket_code:
                 logger.warning("Ticket vazio recebido")
-                CustomMessageBox("Erro", "Código inválido!\nPor favor, verifique o código e tente novamente.", error_icon_path, parent_widget).exec()
+                CustomMessageBox(
+                    "Erro",
+                    "Código inválido!\nPor favor, verifique o código e tente novamente.",
+                    error_icon_path,
+                    parent_widget,
+                ).exec()
                 return
 
             # Preparar dados da requisição
             if operation_type == "MANUAL_VALIDATION":
-                discount_request, notification_data = self._prepare_manual_validation(form_data, ticket_code, hostname, parent_widget, error_icon_path)
+                discount_request, notification_data = self._prepare_manual_validation(
+                    form_data, ticket_code, hostname, parent_widget, error_icon_path
+                )
             else:
-                discount_request, notification_data = self._prepare_automatic_validation(operation_type, ticket_code, hostname, parent_widget, error_icon_path)
+                discount_request, notification_data = (
+                    self._prepare_automatic_validation(
+                        operation_type,
+                        ticket_code,
+                        hostname,
+                        parent_widget,
+                        error_icon_path,
+                    )
+                )
 
             if not discount_request:
                 return  # Erro já foi tratado nos helpers
@@ -89,7 +107,9 @@ class AppController(QObject):
 
             # Executar Serviço
             logger.debug("Enviando requisição para API Estapar")
-            service = EstaparIntegrationService(settings.estapar_ip, settings.estapar_port)
+            service = EstaparIntegrationService(
+                settings.estapar_ip, settings.estapar_port
+            )
             result = service.create_discount(discount_request)
             logger.debug(f"Resposta da API: {result}")
 
@@ -97,56 +117,91 @@ class AppController(QObject):
             if notification_data:
                 notification_data.success = result.success
                 notification_data.message = result.message
-                notification_data.notify_discount()
+                create_notification_item(notification_data.to_dict())
 
             # Feedback para o usuário
             if result.success:
-                success_title = "Validação Manual Realizada" if operation_type == "MANUAL_VALIDATION" else "Operação Realizada com Sucesso"
+                success_title = (
+                    "Validação Manual Realizada"
+                    if operation_type == "MANUAL_VALIDATION"
+                    else "Operação Realizada com Sucesso"
+                )
                 msg = f"API Estapar: {result.message}"
                 logger.success(msg)
-                CustomMessageBox(success_title, msg, success_icon_path, parent_widget).exec()
-                
+                CustomMessageBox(
+                    success_title, msg, success_icon_path, parent_widget
+                ).exec()
+
                 QTimer.singleShot(1500, self.window.showMinimized)
-                self.window.main_widget.clear_inputs(all_fields=operation_type == "MANUAL_VALIDATION")
+                self.window.main_widget.clear_inputs(
+                    all_fields=operation_type == "MANUAL_VALIDATION"
+                )
             else:
                 logger.error(f"Erro na API: {result.message}")
-                CustomMessageBox("Erro", f"Operação não realizada!\nAPI Estapar: {result.message}", error_icon_path, parent_widget).exec()
+                CustomMessageBox(
+                    "Erro",
+                    f"Operação não realizada!\nAPI Estapar: {result.message}",
+                    error_icon_path,
+                    parent_widget,
+                ).exec()
 
         except ValueError as e:
             logger.error(f"Erro de validação: {e}")
-            CustomMessageBox("Erro de Validação", f"Dados inválidos:\n{str(e)}", error_icon_path, parent_widget).exec()
+            CustomMessageBox(
+                "Erro de Validação",
+                f"Dados inválidos:\n{str(e)}",
+                error_icon_path,
+                parent_widget,
+            ).exec()
         except Exception as e:
             logger.critical(f"Erro inesperado: {str(e)}")
             traceback.print_exc()
-            CustomMessageBox("Erro Crítico", "Ocorreu um erro inesperado, verifique os logs.", error_icon_path, parent_widget).exec()
-            
-            # Tenta notificar erro crítico se tiver dados mínimos
+            CustomMessageBox(
+                "Erro Crítico",
+                "Ocorreu um erro inesperado, verifique os logs.",
+                error_icon_path,
+                parent_widget,
+            ).exec()
+
             try:
-                Notification(
-                    ticket_code=ticket_code or 'N/A',
-                    operation_type=operation_type or 'UNKNOWN',
-                    vl_total=0.0,
-                    success=False,
-                    message=f"Erro inesperado: {str(e)}"
-                ).notify_discount()
-            except Exception:
-                pass
+                create_notification_item(
+                    {
+                        "ticket_code": ticket_code or "N/A",
+                        "operation_type": operation_type or "UNKNOWN",
+                        "vl_total": 0.0,
+                        "success": False,
+                        "message": f"Erro inesperado: {str(e)}",
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Erro ao criar notificação: {str(e)}")
 
-
-    def _prepare_manual_validation(self, form_data, ticket_code, hostname, parent_widget, icon_path):
+    def _prepare_manual_validation(
+        self, form_data, ticket_code, hostname, parent_widget, icon_path
+    ):
         num_cupom = form_data.get("num_cupom")
         valor_total = form_data.get("valor_total")
 
         if not num_cupom or not valor_total:
-            CustomMessageBox("Erro", "Por favor, preencha todos os campos obrigatórios para Validação Manual.", icon_path, parent_widget).exec()
+            CustomMessageBox(
+                "Erro",
+                "Por favor, preencha todos os campos obrigatórios para Validação Manual.",
+                icon_path,
+                parent_widget,
+            ).exec()
             return None, None
-        
+
         if not num_cupom.isdigit():
-            CustomMessageBox("Erro", "O número do cupom deve ser um número inteiro.", icon_path, parent_widget).exec()
+            CustomMessageBox(
+                "Erro",
+                "O número do cupom deve ser um número inteiro.",
+                icon_path,
+                parent_widget,
+            ).exec()
             return None, None
 
         logger.debug(f"Validação Manual - Cupom: {num_cupom}, Valor: {valor_total}")
-        
+
         req = DiscountRequest(
             cmd_card_id=ticket_code,
             cmd_term_id=0,
@@ -163,26 +218,33 @@ class AppController(QObject):
             hostname=hostname,
             num_cupom=int(num_cupom),
             num_ped_ecf="0",
-            vl_total=float(valor_total)
+            vl_total=float(valor_total),
         )
         return req, notif
 
-    def _prepare_automatic_validation(self, operation_type, ticket_code, hostname, parent_widget, icon_path):
+    def _prepare_automatic_validation(
+        self, operation_type, ticket_code, hostname, parent_widget, icon_path
+    ):
         logger.debug("Consultando último pedido PDV")
         pdv_pedido = get_last_pdv_pedido()
-        
+
         if not pdv_pedido:
             logger.error("Nenhum pedido PDV encontrado")
-            CustomMessageBox("Erro", "Não foi possível encontrar um pedido PDV válido.\nPor favor, contate a administração.", icon_path, parent_widget).exec()
+            CustomMessageBox(
+                "Erro",
+                "Não foi possível encontrar um pedido PDV válido.\nPor favor, contate a administração.",
+                icon_path,
+                parent_widget,
+            ).exec()
             return None, None
 
         num_caixa = pdv_pedido.num_caixa
         num_cupom = pdv_pedido.num_cupom
         num_pedido = pdv_pedido.num_ped_ecf
         valor_total = pdv_pedido.vl_total
-        
+
         logger.debug("Criando requisição automática")
-        
+
         req = DiscountRequest(
             cmd_card_id=ticket_code,
             cmd_term_id=num_caixa,
@@ -199,15 +261,16 @@ class AppController(QObject):
             hostname=hostname,
             num_cupom=int(num_cupom),
             num_ped_ecf=str(num_pedido),
-            vl_total=float(valor_total)
+            vl_total=float(valor_total),
         )
         return req, notif
-    @Slot() # type: ignore
+
+    @Slot()  # type: ignore
     def on_tray_icon_activated(self, reason):
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
             self.show_gui() if not self.window.isVisible() else self.hide_gui()
 
-    @Slot(float) # type: ignore
+    @Slot(float)  # type: ignore
     def emit_actual_valor_update(self, valor: float):
         self.actual_valor_updated.emit(valor)
 
