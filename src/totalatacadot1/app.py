@@ -14,8 +14,8 @@ from totalatacadot1.models import PCPEDCECF
 from totalatacadot1.notification import Notification
 from totalatacadot1.repository import (
     create_pdv_control_item,
+    get_last_control_item_of_the_dat_by_numcupom,
     get_last_notification_not_sent,
-    get_last_pdv_control_item_by_numcupom,
     get_last_pdv_pedido,
 )
 
@@ -24,6 +24,7 @@ if platform.system() == "Linux":
 
 
 def logger_init_setup():
+    logger.remove()  # Remove o handler padrão para evitar duplicação
     log_dir = Path.home() / "logs"
     log_dir.mkdir(exist_ok=True)  # Garante que o diretório exista
 
@@ -52,27 +53,46 @@ def listen_new_pdv_item(controller: AppController, is_active_db: bool):
 
     last_pdv_pedido: PCPEDCECF | None = get_last_pdv_pedido()
     if last_pdv_pedido is not None:
+        logger.info(
+            f"Último pedido PDV: num_cupom={last_pdv_pedido.num_cupom}, vl_total={last_pdv_pedido.vl_total}"
+        )
+
         controller.emit_actual_valor_update(last_pdv_pedido.vl_total)
 
-        pdv_control_item = get_last_pdv_control_item_by_numcupom(
+        pdv_control_item = get_last_control_item_of_the_dat_by_numcupom(
             last_pdv_pedido.num_cupom
         )
         if pdv_control_item is None:
             pdv_control_item = create_pdv_control_item(
                 last_pdv_pedido.num_ped_ecf,
                 last_pdv_pedido.num_cupom,
+                last_pdv_pedido.data,
+            )
+            logger.info(
+                f"Criando novo item de controle PDV: num_cupom={pdv_control_item.num_cupom}"
+                " - Lançamento do desconto liberado."
             )
             """Solicita a validação do ticket."""
             controller.show_gui()
+        else:
+            logger.info(
+                f"Item de controle PDV encontrado: num_cupom={pdv_control_item.num_cupom} - SKIPPING."
+            )
+    else:
+        logger.info("Nenhum pedido encontrado - SKIPPING.")
 
 
 def listen_notification_not_sent():
     try:
-        logger.info("Verificando notificações não enviadas...")
         last_notification_not_sent = get_last_notification_not_sent()
         if last_notification_not_sent is not None:
+            logger.info(
+                f"Encontrada notificação não enviada: {last_notification_not_sent.id}"
+            )
             notification_item = Notification(**last_notification_not_sent.data)
             notification_item.notify_discount()
+        else:
+            logger.info("Nenhuma notificação não enviada encontrada - SKIPPING.")
     except Exception as e:
         logger.error(f"Erro ao processar notificação: {e}")
 

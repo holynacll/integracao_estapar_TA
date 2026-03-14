@@ -24,16 +24,25 @@ def get_pdv_control_item_by_num_ped_ecf(num_ped_ecf: int) -> ControlPDV | None:
         )
 
 
-def get_last_pdv_control_item_by_numcupom(num_cupom: int) -> ControlPDV | None:
+def get_last_control_item_of_the_dat_by_numcupom(num_cupom: int) -> ControlPDV | None:
+    today = datetime.datetime.now().strftime("%d/%m/%y")
     with db_sqlite_context() as db:
-        return db.query(ControlPDV).filter(ControlPDV.num_cupom == num_cupom).first()
+        return (
+            db.query(ControlPDV)
+            .filter(
+                ControlPDV.num_cupom == num_cupom,
+                ControlPDV.data == today,
+            )
+            .first()
+        )
 
 
 def create_pdv_control_item(
     num_ped_ecf: int,
     num_cupom: int,
+    data: str,
 ) -> ControlPDV:
-    pdv_item = ControlPDV(num_ped_ecf=num_ped_ecf, num_cupom=num_cupom)
+    pdv_item = ControlPDV(num_ped_ecf=num_ped_ecf, num_cupom=num_cupom, data=data)
     with db_sqlite_context() as db:
         db.add(pdv_item)
         db.commit()
@@ -68,7 +77,7 @@ def update_notification_item_sent(ticket_code: str) -> NotificationModel | None:
         notification_item = (
             db.query(NotificationModel)
             .filter(NotificationModel.ticket_code == ticket_code)
-            .filter(NotificationModel.sent == False) # noqa: E712
+            .filter(NotificationModel.sent == False)  # noqa: E712
             .first()
         )
         if notification_item:

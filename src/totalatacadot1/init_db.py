@@ -1,15 +1,16 @@
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
+
+from loguru import logger
+
+from totalatacadot1.database import OracleSessionLocal
+from totalatacadot1.models import PCPEDCECF
+
 # Pega o caminho absoluto da pasta 'src' e adiciona no PATH do Python
 src_path = Path(__file__).resolve().parent.parent
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
-
-# Importações
-from loguru import logger
-from totalatacadot1.database import OracleSessionLocal
-from .models import PCPEDCECF
-from datetime import datetime
 
 
 # Inserir dados iniciais na tabela PCPEDCECF
@@ -26,30 +27,26 @@ def populate_pdv():
 
         # Inserindo registros iniciais
         pdv_data = [
-            PCPEDCECF(
-                num_ped_ecf=13954,
-                num_caixa=303,
-                data=datetime.strptime("1/7/25 0:00", "%m/%d/%y %H:%M").strftime(
-                    "%m/%d/%y %H:%M"
-                ),
-                hora_cupom=datetime.strptime("19:58:47", "%H:%M:%S").strftime(
-                    "%H:%M:%S"
-                ),
-                num_cupom=10429,
-                vl_total=120.69,
-            ),
             # PCPEDCECF(
-            #     num_ped_ecf=11445,
+            #     num_ped_ecf=120325,
             #     num_caixa=303,
-            #     data=datetime.strptime("1/7/25 0:00", "%m/%d/%y %H:%M").strftime(
-            #         "%m/%d/%y %H:%M"
-            #     ),
+            #     data=(datetime.today() - timedelta(days=1)).strftime("%d/%m/%y"),
             #     hora_cupom=datetime.strptime("19:58:47", "%H:%M:%S").strftime(
             #         "%H:%M:%S"
             #     ),
-            #     num_cupom=10430,
-            #     vl_total=12.69,
+            #     num_cupom=10555,
+            #     vl_total=120.69,
             # ),
+            PCPEDCECF(
+                num_ped_ecf=58,
+                num_caixa=303,
+                data=datetime.today().strftime("%d/%m/%y"),
+                hora_cupom=datetime.strptime("19:58:47", "%H:%M:%S").strftime(
+                    "%H:%M:%S"
+                ),
+                num_cupom=10467,
+                vl_total=66.69,
+            ),
             # PCPEDCECF(
             #     num_ped_ecf=11466,
             #     num_caixa=303,
