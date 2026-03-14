@@ -5,10 +5,7 @@ import requests
 from loguru import logger
 
 from totalatacadot1.config import settings
-from totalatacadot1.repository import (
-    create_notification_item,
-    update_notification_item_sent,
-)
+from totalatacadot1.repository import update_notification_item_sent
 
 
 @dataclass
