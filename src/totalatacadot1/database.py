@@ -1,16 +1,15 @@
-from pathlib import Path
 import platform
-from contextlib import contextmanager
 import shutil
+from contextlib import contextmanager
+from pathlib import Path
 
+import oracledb
 from loguru import logger
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from totalatacadot1.config import settings
-import platform
-import shutil
-import oracledb
+
 
 def setup_oracle_client():
     if platform.system() == "Windows":
@@ -26,11 +25,13 @@ def setup_oracle_client():
         if oracle_client_path.exists():  # Verifica novamente após extração
             oracledb.init_oracle_client(lib_dir=str(oracle_client_path))
 
+
 setup_oracle_client()
 
 DATABASE_URLS = [
     f"oracle+oracledb://{settings.oracle_user}:{settings.oracle_password}@{settings.oracle_host}:{settings.oracle_port}/?service_name={settings.oracle_sid}",
     f"oracle+oracledb://{settings.oracle_user}:{settings.oracle_password}@{settings.oracle_host}:{settings.oracle_port}/{settings.oracle_sid_alternative_1}",
+    f"oracle+oracledb://{settings.oracle_user}:{settings.oracle_password}@{settings.oracle_host}:{settings.oracle_port}/?service_name={settings.oracle_sid_alternative_2}",
 ]
 
 # Configurações do banco de dados SQLite
@@ -61,7 +62,7 @@ for database_url in DATABASE_URLS:
         logger.info(f"Conexão Oracle bem-sucedida: {database_url}")
         break
     except Exception as e:
-        logger.error(f"Erro ao conectar ao Oracle: {database_url}. Erro: {e}")
+        logger.warning(f"Erro ao conectar ao Oracle: {database_url}. Erro: {e}")
 
 if oracle_engine is None:
     raise RuntimeError("Nenhuma conexão com o Oracle foi estabelecida.")
