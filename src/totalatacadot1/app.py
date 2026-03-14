@@ -1,23 +1,22 @@
 import os
 import platform
 import sys
-from threading import Thread
 from pathlib import Path
+from threading import Thread
+from time import sleep
 
 from loguru import logger
 
-from time import sleep
 from totalatacadot1.config import settings
 from totalatacadot1.controllers.app_controller import AppController
 from totalatacadot1.database import init_db
-from totalatacadot1.models import PCPEDCECF, ControlPDV
+from totalatacadot1.models import PCPEDCECF
 from totalatacadot1.notification import Notification
 from totalatacadot1.repository import (
     create_pdv_control_item,
     get_last_notification_not_sent,
+    get_last_pdv_control_item_by_numcupom,
     get_last_pdv_pedido,
-    get_pdv_control_item_by_num_ped_ecf,
-    update_notification_item_sent,
 )
 
 if platform.system() == "Linux":
@@ -46,20 +45,23 @@ def db_init_setup():
 
 def listen_new_pdv_item(controller: AppController, is_active_db: bool):
     if not is_active_db:
-        logger.warning("Banco de dados desativado. Não será possível verificar novos itens do PDV.")
+        logger.warning(
+            "Banco de dados desativado. Não será possível verificar novos itens do PDV."
+        )
         return
 
     last_pdv_pedido: PCPEDCECF | None = get_last_pdv_pedido()
     if last_pdv_pedido is not None:
         controller.emit_actual_valor_update(last_pdv_pedido.vl_total)
 
-        pdv_control_item = get_pdv_control_item_by_num_ped_ecf(
-                last_pdv_pedido.num_ped_ecf
-            )
+        pdv_control_item = get_last_pdv_control_item_by_numcupom(
+            last_pdv_pedido.num_cupom
+        )
         if pdv_control_item is None:
             pdv_control_item = create_pdv_control_item(
-                    last_pdv_pedido.num_ped_ecf
-                )
+                last_pdv_pedido.num_ped_ecf,
+                last_pdv_pedido.num_cupom,
+            )
             """Solicita a validação do ticket."""
             controller.show_gui()
 
@@ -97,7 +99,9 @@ def print_inital_configuration():
     logger.info(f"Caminho dos assets: {settings.assets_path}")
     logger.info(f"Caminho das imagens: {settings.images_path}")
     logger.info(f"Caminho do Instant Client: {settings.orcl_instant_client_path}")
-    logger.info(f"Caminho do Instant Client zipado: {settings.orcl_instant_client_path_zipped}")
+    logger.info(
+        f"Caminho do Instant Client zipado: {settings.orcl_instant_client_path_zipped}"
+    )
 
 
 def main():
@@ -107,7 +111,9 @@ def main():
     controller = AppController()
 
     # Criar e iniciar a thread que executa a lógica em segundo plano
-    thread = Thread(target=background_task, args=(controller, is_db_active), daemon=True)
+    thread = Thread(
+        target=background_task, args=(controller, is_db_active), daemon=True
+    )
     thread.start()
 
     # Iniciar o loop de eventos do Qt

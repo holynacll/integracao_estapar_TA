@@ -2,6 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import JSON, Boolean, DateTime, Integer, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column
+
 from totalatacadot1.database import BaseOracle, BaseSQLite
 
 
@@ -36,6 +37,8 @@ class ControlPDV(BaseSQLite):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     num_ped_ecf: Mapped[int] = mapped_column(Integer, nullable=False)
+    num_cupom: Mapped[int] = mapped_column(Integer, nullable=False)
+    data: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
