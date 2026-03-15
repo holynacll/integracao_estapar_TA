@@ -1,5 +1,7 @@
 import datetime
 
+from sqlalchemy import func
+
 from .database import db_oracle_context, db_sqlite_context
 from .models import PCPEDCECF, ControlPDV, NotificationModel
 
@@ -11,7 +13,7 @@ def get_last_pdv_pedido() -> PCPEDCECF | None:
         return (
             db.query(PCPEDCECF)
             .filter(PCPEDCECF.vl_total < vl_limit)
-            .filter(PCPEDCECF.data == today_str)
+            .filter(PCPEDCECF.data == func.to_date(today_str, "DD/MM/YY"))
             .order_by(PCPEDCECF.num_cupom.desc())
             .first()
         )
