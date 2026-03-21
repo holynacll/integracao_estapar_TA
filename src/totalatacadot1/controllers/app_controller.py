@@ -5,6 +5,7 @@ import traceback
 from loguru import logger
 from PySide6.QtCore import QObject, QTimer, Signal, Slot
 from PySide6.QtGui import QAction, QIcon
+from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
 from ..components.custom_message_box import CustomMessageBox
@@ -16,6 +17,8 @@ from ..repository import create_notification_item, get_last_pdv_pedido
 from ..schemas import DiscountRequest
 from ..services.estapar_integration_service import EstaparIntegrationService
 
+SINGLE_INSTANCE_KEY = "totalatacadot1"
+
 
 class AppController(QObject):
     request_show_gui = Signal()
@@ -26,6 +29,10 @@ class AppController(QObject):
     def __init__(self):
         super().__init__()
         self.app = QApplication(sys.argv)
+
+        if not self._ensure_single_instance():
+            sys.exit(0)
+
         self.window = MainWindow()
 
         # Conexões de sinais e slots
@@ -298,6 +305,37 @@ class AppController(QObject):
     @Slot()
     def _shutdown(self):
         self.app.quit()
+
+    def _ensure_single_instance(self) -> bool:
+        """Verifica se já existe uma instância rodando.
+        Retorna True se esta é a única instância, False caso contrário."""
+        test_socket = QLocalSocket()
+        test_socket.connectToServer(SINGLE_INSTANCE_KEY)
+        if test_socket.waitForConnected(500):
+            logger.info("Outra instância já está em execução. Enviando sinal para levantar janela.")
+            test_socket.write(b"raise")
+            test_socket.flush()
+            test_socket.waitForBytesWritten(1000)
+            test_socket.disconnectFromServer()
+            return False
+
+        QLocalServer.removeServer(SINGLE_INSTANCE_KEY)
+        self._local_server = QLocalServer(self.app)
+        self._local_server.newConnection.connect(self._on_new_instance)
+        self._local_server.listen(SINGLE_INSTANCE_KEY)
+        return True
+
+    @Slot()
+    def _on_new_instance(self):
+        """Chamado quando uma nova instância tenta abrir o programa."""
+        client = self._local_server.nextPendingConnection()
+        if client:
+            client.waitForReadyRead(1000)
+            client.disconnectFromServer()
+        logger.info("Nova tentativa de abertura detectada. Levantando janela existente.")
+        self.show_gui()
+        self.window.raise_()
+        self.window.activateWindow()
 
     def is_gui_open(self) -> bool:
         return self.window.isVisible()
