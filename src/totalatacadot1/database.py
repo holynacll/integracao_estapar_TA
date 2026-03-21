@@ -56,7 +56,7 @@ sqlite_engine = None
 for database_url in DATABASE_URLS:
     try:
         oracle_engine = create_engine(
-            database_url, echo=False
+            database_url, echo=False, pool_pre_ping=True
         )  # echo=True para logs de SQL no console
         connection = oracle_engine.connect()
         connection.close()
@@ -88,6 +88,7 @@ def get_oracle_db():
     try:
         yield db
     finally:
+        db.rollback()
         db.close()
 
 
