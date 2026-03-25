@@ -5,7 +5,6 @@ from pathlib import Path
 
 import oracledb
 from loguru import logger
-import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
@@ -106,33 +105,6 @@ db_oracle_context = contextmanager(get_oracle_db)
 db_sqlite_context = contextmanager(get_sqlite_db)
 
 
-# Funções para criar as tabelas no SQLite (se não existirem)
-def create_sqlite_tables():
-    if sqlite_engine:
-        BaseSQLite.metadata.create_all(bind=sqlite_engine, checkfirst=True)
-
-
-def migrate_sqlite_tables():
-    """Aplica migrações incrementais no SQLite sem recriar tabelas existentes."""
-    if not sqlite_engine:
-        return
-
-    with sqlite_engine.connect() as conn:
-        # Verifica se a coluna 'data' existe na tabela ControlPDV
-        result = conn.execute(
-            sqlalchemy.text("PRAGMA table_info(ControlPDV)")
-        )
-        columns = [row[1] for row in result]
-        if "data" not in columns:
-            conn.execute(
-                sqlalchemy.text(
-                    "ALTER TABLE ControlPDV ADD COLUMN data TEXT NOT NULL DEFAULT ''"
-                )
-            )
-            conn.commit()
-            logger.info("Coluna 'data' adicionada à tabela ControlPDV.")
-
-
 # Funções para criar as tabelas no Oracle
 def create_oracle_tables():
     if oracle_engine:
@@ -142,8 +114,11 @@ def create_oracle_tables():
 # Função para inicializar o banco de dados
 def init_db():
     logger.info("Iniciando a inicialização do banco de dados...")
-    create_sqlite_tables()
-    migrate_sqlite_tables()
+    if SQLITE_DB_PATH.exists():
+        SQLITE_DB_PATH.unlink()
+        logger.info("Banco de dados SQLite removido.")
+    if sqlite_engine:
+        BaseSQLite.metadata.create_all(bind=sqlite_engine)
     logger.info("Tabelas SQLite criadas com sucesso.")
     create_oracle_tables()
     logger.info("Tabelas Oracle criadas com sucesso.")
