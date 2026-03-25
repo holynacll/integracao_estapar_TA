@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, Integer, Numeric, String, func
+from sqlalchemy import JSON, Boolean, Date, DateTime, Integer, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from totalatacadot1.database import BaseOracle, BaseSQLite
@@ -14,7 +14,7 @@ class PCPEDCECF(BaseOracle):
         Integer, name="NUMPEDECF", primary_key=True
     )
     num_caixa: Mapped[int] = mapped_column(Integer, name="NUMCAIXA", nullable=True)
-    data: Mapped[str] = mapped_column(String(20), name="DATA", nullable=True)
+    data: Mapped[date] = mapped_column(Date, name="DATA", nullable=True)
     hora_cupom: Mapped[str] = mapped_column(String(20), name="HORACUPOM", nullable=True)
     num_cupom: Mapped[int] = mapped_column(Integer, name="NUMCUPOM", nullable=True)
     vl_total: Mapped[float] = mapped_column(
@@ -38,7 +38,7 @@ class ControlPDV(BaseSQLite):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     num_ped_ecf: Mapped[int] = mapped_column(Integer, nullable=False)
     num_cupom: Mapped[int] = mapped_column(Integer, nullable=False)
-    data: Mapped[str] = mapped_column(String(20), nullable=False)
+    data: Mapped[date] = mapped_column(Date, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()

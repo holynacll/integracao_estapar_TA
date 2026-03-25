@@ -1,5 +1,5 @@
 import sys
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from loguru import logger
@@ -40,7 +40,7 @@ def populate_pdv():
             PCPEDCECF(
                 num_ped_ecf=58,
                 num_caixa=303,
-                data=datetime.today().strftime("%d/%m/%y"),
+                data=date.today(),
                 hora_cupom=datetime.strptime("19:58:47", "%H:%M:%S").strftime(
                     "%H:%M:%S"
                 ),

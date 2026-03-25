@@ -8,15 +8,18 @@ from .models import PCPEDCECF, ControlPDV, NotificationModel
 
 def get_last_pdv_pedido() -> PCPEDCECF | None:
     vl_limit = 99999999
-    today_str = datetime.date.today().strftime("%d/%m/%y")
+    today = datetime.date.today()
     with db_oracle_context() as db:
-        return (
+        result = (
             db.query(PCPEDCECF)
             .filter(PCPEDCECF.vl_total < vl_limit)
-            .filter(PCPEDCECF.data == func.to_date(today_str, "DD/MM/YY"))
+            .filter(func.trunc(PCPEDCECF.data) == today)
             .order_by(PCPEDCECF.num_cupom.desc())
             .first()
         )
+        if result is not None:
+            db.expunge(result)
+        return result
 
 
 def get_pdv_control_item_by_num_ped_ecf(num_ped_ecf: int) -> ControlPDV | None:
@@ -27,7 +30,7 @@ def get_pdv_control_item_by_num_ped_ecf(num_ped_ecf: int) -> ControlPDV | None:
 
 
 def get_last_control_item_of_the_dat_by_numcupom(num_cupom: int) -> ControlPDV | None:
-    today = datetime.datetime.now().strftime("%d/%m/%y")
+    today = datetime.date.today()
     with db_sqlite_context() as db:
         return (
             db.query(ControlPDV)
@@ -42,7 +45,7 @@ def get_last_control_item_of_the_dat_by_numcupom(num_cupom: int) -> ControlPDV |
 def create_pdv_control_item(
     num_ped_ecf: int,
     num_cupom: int,
-    data: str,
+    data: datetime.date,
 ) -> ControlPDV:
     pdv_item = ControlPDV(num_ped_ecf=num_ped_ecf, num_cupom=num_cupom, data=data)
     with db_sqlite_context() as db:
