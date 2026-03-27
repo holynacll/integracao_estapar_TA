@@ -18,8 +18,9 @@ def setup_oracle_client():
         if not oracle_client_path.exists():
             orcl_instant_client_zip = settings.orcl_instant_client_path_zipped
             if orcl_instant_client_zip.exists():
+                oracle_client_path.parent.mkdir(parents=True, exist_ok=True)
                 shutil.unpack_archive(
-                    str(orcl_instant_client_zip), str(settings.project_root)
+                    str(orcl_instant_client_zip), str(oracle_client_path.parent)
                 )
 
         if oracle_client_path.exists():  # Verifica novamente após extração

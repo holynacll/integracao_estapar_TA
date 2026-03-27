@@ -18,7 +18,7 @@ dependencies = [
 
 # This project was generated with 0.3.22 using template: https://github.com/beeware/briefcase-template@v0.3.22
 [tool.briefcase]
-project_name = "Total Atacado T1"
+project_name = "TotalAtacadoT1"
 bundle = "com.example"
 version = "0.0.1"
 url = "https://example.com/totalatacadot1"
@@ -27,7 +27,7 @@ author = "Alexandre Lima"
 author_email = "alexandrecurylima@gmail.com"
 
 [tool.briefcase.app.totalatacadot1]
-formal_name = "Total Atacado T1"
+formal_name = "TotalAtacadoT1"
 description = "A application for handling integration between total atacado and estapar"
 long_description = """More details about the app should go here.
 """

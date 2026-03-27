@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -61,7 +62,8 @@ class Settings(BaseSettings):
 
     @property
     def orcl_instant_client_path(self) -> Path:
-        return self.project_root / "instantclient_19_26"
+        local_app_data = Path(os.environ.get("LOCALAPPDATA", Path.home()))
+        return local_app_data / "TotalAtacadoT1" / "instantclient_19_26"
 
     @property
     def orcl_instant_client_path_zipped(self) -> Path:
