@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     # URL Notificação
     url_notification: str = "http://192.168.211.249:8000"
 
+    # Controle interno de pedidos (False = apenas exibe GUI sem gravar controle)
+    use_internal_control: bool = False
+
     # Configuração Pydantic
     model_config = SettingsConfigDict(
         env_file=(".env", ".env.development", ".env.production"),

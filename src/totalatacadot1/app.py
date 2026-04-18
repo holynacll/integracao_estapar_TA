@@ -44,7 +44,9 @@ def db_init_setup():
     return db_on
 
 
-def listen_new_pdv_item(controller: AppController, is_active_db: bool):
+def listen_new_pdv_item(
+    controller: AppController, is_active_db: bool, last_cupom: list
+):
     if not is_active_db:
         logger.warning(
             "Banco de dados desativado. Não será possível verificar novos itens do PDV."
@@ -52,34 +54,42 @@ def listen_new_pdv_item(controller: AppController, is_active_db: bool):
         return
 
     last_pdv_pedido: PCPEDCECF | None = get_last_pdv_pedido()
-    if last_pdv_pedido is not None:
-        logger.info(
-            f"Último pedido PDV: num_cupom={last_pdv_pedido.num_cupom}, vl_total={last_pdv_pedido.vl_total}"
-        )
-
-        controller.emit_actual_valor_update(last_pdv_pedido.vl_total)
-
-        pdv_control_item = get_last_control_item_of_the_dat_by_numcupom(
-            last_pdv_pedido.num_cupom
-        )
-        if pdv_control_item is None:
-            pdv_control_item = create_pdv_control_item(
-                last_pdv_pedido.num_ped_ecf,
-                last_pdv_pedido.num_cupom,
-                last_pdv_pedido.data,
-            )
-            logger.info(
-                f"Criando novo item de controle PDV: num_cupom={pdv_control_item.num_cupom}"
-                " - Lançamento do desconto liberado."
-            )
-            """Solicita a validação do ticket."""
-            controller.show_gui()
-        else:
-            logger.info(
-                f"Item de controle PDV encontrado: num_cupom={pdv_control_item.num_cupom} - SKIPPING."
-            )
-    else:
+    if last_pdv_pedido is None:
         logger.info("Nenhum pedido encontrado - SKIPPING.")
+        return
+
+    logger.info(
+        f"Último pedido PDV: num_cupom={last_pdv_pedido.num_cupom}, vl_total={last_pdv_pedido.vl_total}"
+    )
+    controller.emit_actual_valor_update(last_pdv_pedido.vl_total)
+
+    if not settings.use_internal_control:
+        if last_pdv_pedido.num_cupom != last_cupom[0]:
+            last_cupom[0] = last_pdv_pedido.num_cupom
+            logger.info(
+                f"Novo pedido detectado (sem controle interno): num_cupom={last_pdv_pedido.num_cupom}"
+            )
+            controller.show_gui()
+        return
+
+    pdv_control_item = get_last_control_item_of_the_dat_by_numcupom(
+        last_pdv_pedido.num_cupom
+    )
+    if pdv_control_item is None:
+        pdv_control_item = create_pdv_control_item(
+            last_pdv_pedido.num_ped_ecf,
+            last_pdv_pedido.num_cupom,
+            last_pdv_pedido.data,
+        )
+        logger.info(
+            f"Criando novo item de controle PDV: num_cupom={pdv_control_item.num_cupom}"
+            " - Lançamento do desconto liberado."
+        )
+        controller.show_gui()
+    else:
+        logger.info(
+            f"Item de controle PDV encontrado: num_cupom={pdv_control_item.num_cupom} - SKIPPING."
+        )
 
 
 def listen_notification_not_sent():
@@ -100,10 +110,11 @@ def listen_notification_not_sent():
 def background_task(controller: AppController, is_active_db: bool):
     logger.info("Iniciando thread de background...")
     controller.show_gui()
+    last_cupom = [None]
     while True:
         sleep(5)
         listen_notification_not_sent()
-        listen_new_pdv_item(controller, is_active_db)
+        listen_new_pdv_item(controller, is_active_db, last_cupom)
 
 
 def print_inital_configuration():
@@ -115,6 +126,7 @@ def print_inital_configuration():
     logger.info(f"Host do banco de dados Oracle: {settings.oracle_host}")
     logger.info(f"Porta do banco de dados Oracle: {settings.oracle_port}")
     logger.info(f"URL de notificação: {settings.url_notification}")
+    logger.info(f"Controle interno ativo: {settings.use_internal_control}")
     logger.info(f"Caminho da raiz do projeto: {settings.project_root}")
     logger.info(f"Caminho dos assets: {settings.assets_path}")
     logger.info(f"Caminho das imagens: {settings.images_path}")

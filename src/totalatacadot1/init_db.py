@@ -1,5 +1,5 @@
 import sys
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from loguru import logger
@@ -27,38 +27,30 @@ def populate_pdv():
 
         # Inserindo registros iniciais
         pdv_data = [
-            # PCPEDCECF(
-            #     num_ped_ecf=120325,
-            #     num_caixa=303,
-            #     data=(datetime.today() - timedelta(days=1)).strftime("%d/%m/%y"),
-            #     hora_cupom=datetime.strptime("19:58:47", "%H:%M:%S").strftime(
-            #         "%H:%M:%S"
-            #     ),
-            #     num_cupom=10555,
-            #     vl_total=120.69,
-            # ),
             PCPEDCECF(
-                num_ped_ecf=58,
+                num_ped_ecf=7765,
                 num_caixa=303,
-                data=date.today(),
-                hora_cupom=datetime.strptime("19:58:47", "%H:%M:%S").strftime(
-                    "%H:%M:%S"
-                ),
-                num_cupom=10467,
-                vl_total=66.69,
+                data=datetime.today() - timedelta(days=1),
+                hora_cupom="19:58:47",
+                num_cupom=10555,
+                vl_total=120.69,
             ),
-            # PCPEDCECF(
-            #     num_ped_ecf=11466,
-            #     num_caixa=303,
-            #     data=datetime.strptime("1/7/25 0:00", "%m/%d/%y %H:%M").strftime(
-            #         "%m/%d/%y %H:%M"
-            #     ),
-            #     hora_cupom=datetime.strptime("19:58:47", "%H:%M:%S").strftime(
-            #         "%H:%M:%S"
-            #     ),
-            #     num_cupom=10431,
-            #     vl_total=12.69,
-            # ),
+            PCPEDCECF(
+                num_ped_ecf=656,
+                num_caixa=303,
+                data=datetime.today(),
+                hora_cupom="19:58:47",
+                num_cupom=6767,
+                vl_total=88.69,
+            ),
+            PCPEDCECF(
+                num_ped_ecf=65756,
+                num_caixa=303,
+                data=datetime.today(),
+                hora_cupom="19:58:47",
+                num_cupom=3244,
+                vl_total=55.69,
+            ),
         ]
 
         session_oracle.add_all(pdv_data)
