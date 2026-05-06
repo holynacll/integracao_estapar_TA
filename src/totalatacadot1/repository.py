@@ -14,7 +14,7 @@ def get_last_pdv_pedido() -> PCPEDCECF | None:
             db.query(PCPEDCECF)
             .filter(PCPEDCECF.vl_total < vl_limit)
             .filter(func.trunc(PCPEDCECF.data) == today)
-            .order_by(PCPEDCECF.num_cupom.desc())
+            .order_by(PCPEDCECF.num_ped_ecf.desc())
             .first()
         )
         if result is not None:
@@ -26,6 +26,21 @@ def get_pdv_control_item_by_num_ped_ecf(num_ped_ecf: int) -> ControlPDV | None:
     with db_sqlite_context() as db:
         return (
             db.query(ControlPDV).filter(ControlPDV.num_ped_ecf == num_ped_ecf).first()
+        )
+
+
+def get_pdv_control_item_by_num_ped_ecf_and_today(
+    num_ped_ecf: int,
+) -> ControlPDV | None:
+    today = datetime.date.today()
+    with db_sqlite_context() as db:
+        return (
+            db.query(ControlPDV)
+            .filter(
+                ControlPDV.num_ped_ecf == num_ped_ecf,
+                ControlPDV.data == today,
+            )
+            .first()
         )
 
 
