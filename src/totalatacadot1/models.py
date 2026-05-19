@@ -52,6 +52,29 @@ class ControlPDV(BaseSQLite):
         )
 
 
+class LastAppliedDiscount(BaseSQLite):
+    __tablename__ = "LastAppliedDiscount"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    ticket_code: Mapped[str] = mapped_column(String(120), nullable=False)
+    num_ped_ecf: Mapped[int] = mapped_column(Integer, nullable=False)
+    num_cupom: Mapped[int] = mapped_column(Integer, nullable=False)
+    valor_total: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    data: Mapped[date] = mapped_column(Date, nullable=False)
+    applied_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"LastAppliedDiscount(ticket_code={self.ticket_code}, "
+            f"num_ped_ecf={self.num_ped_ecf}, "
+            f"num_cupom={self.num_cupom}, "
+            f"valor_total={self.valor_total}, "
+            f"data={self.data})"
+        )
+
+
 class NotificationModel(BaseSQLite):
     __tablename__ = "Notification"
 

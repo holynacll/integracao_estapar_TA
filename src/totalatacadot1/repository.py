@@ -3,7 +3,7 @@ import datetime
 from sqlalchemy import func
 
 from .database import db_oracle_context, db_sqlite_context
-from .models import PCPEDCECF, ControlPDV, NotificationModel
+from .models import PCPEDCECF, ControlPDV, LastAppliedDiscount, NotificationModel
 
 
 def get_last_pdv_pedido() -> PCPEDCECF | None:
@@ -68,6 +68,41 @@ def create_pdv_control_item(
         db.commit()
         db.refresh(pdv_item)
         return pdv_item
+
+
+def get_last_applied_discount() -> LastAppliedDiscount | None:
+    with db_sqlite_context() as db:
+        return db.query(LastAppliedDiscount).filter(LastAppliedDiscount.id == 1).first()
+
+
+def upsert_last_applied_discount(
+    ticket_code: str,
+    num_ped_ecf: int,
+    num_cupom: int,
+    valor_total: float,
+    data: datetime.date,
+) -> LastAppliedDiscount:
+    with db_sqlite_context() as db:
+        item = db.query(LastAppliedDiscount).filter(LastAppliedDiscount.id == 1).first()
+        if item:
+            item.ticket_code = ticket_code
+            item.num_ped_ecf = num_ped_ecf
+            item.num_cupom = num_cupom
+            item.valor_total = valor_total
+            item.data = data
+        else:
+            item = LastAppliedDiscount(
+                id=1,
+                ticket_code=ticket_code,
+                num_ped_ecf=num_ped_ecf,
+                num_cupom=num_cupom,
+                valor_total=valor_total,
+                data=data,
+            )
+            db.add(item)
+        db.commit()
+        db.refresh(item)
+        return item
 
 
 def create_notification_item(notification_data: dict) -> NotificationModel:

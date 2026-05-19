@@ -1,3 +1,4 @@
+import datetime
 import socket
 import sys
 import traceback
@@ -13,7 +14,12 @@ from ..config import settings
 from ..enums import CommandType
 from ..gui.main_window import MainWindow
 from ..notification import Notification
-from ..repository import create_notification_item, get_last_pdv_pedido
+from ..repository import (
+    create_notification_item,
+    get_last_applied_discount,
+    get_last_pdv_pedido,
+    upsert_last_applied_discount,
+)
 from ..schemas import DiscountRequest
 from ..services.estapar_integration_service import EstaparIntegrationService
 
@@ -112,6 +118,29 @@ class AppController(QObject):
             # Validação do Objeto de Requisição
             discount_request.validate()
 
+            # Bloquear relançamento do mesmo desconto no mesmo dia
+            last_discount = get_last_applied_discount()
+            if last_discount:
+                today = datetime.date.today()
+                if (
+                    last_discount.ticket_code == discount_request.cmd_card_id
+                    and last_discount.num_ped_ecf == discount_request.cmd_seq_no
+                    and last_discount.num_cupom == discount_request.cmd_op_seq_no
+                    and float(last_discount.valor_total) == discount_request.cmd_op_value
+                    and last_discount.data == today
+                ):
+                    logger.warning(
+                        f"Desconto já lançado hoje para ticket={discount_request.cmd_card_id} "
+                        f"num_ped_ecf={discount_request.cmd_seq_no} — bloqueado."
+                    )
+                    CustomMessageBox(
+                        "Desconto já lançado",
+                        "Este desconto já foi aplicado hoje!\nOperação bloqueada.",
+                        error_icon_path,
+                        parent_widget,
+                    ).exec()
+                    return
+
             # Executar Serviço
             logger.debug("Enviando requisição para API Estapar")
             service = EstaparIntegrationService(
@@ -135,6 +164,13 @@ class AppController(QObject):
                 )
                 msg = f"API Estapar: {result.message}"
                 logger.success(msg)
+                upsert_last_applied_discount(
+                    ticket_code=discount_request.cmd_card_id,
+                    num_ped_ecf=discount_request.cmd_seq_no,
+                    num_cupom=discount_request.cmd_op_seq_no,
+                    valor_total=discount_request.cmd_op_value,
+                    data=datetime.date.today(),
+                )
                 CustomMessageBox(
                     success_title, msg, success_icon_path, parent_widget
                 ).exec()
