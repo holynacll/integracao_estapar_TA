@@ -123,11 +123,15 @@ class AppController(QObject):
             if last_discount:
                 today = datetime.date.today()
                 if (
-                    last_discount.ticket_code == discount_request.cmd_card_id
-                    and last_discount.num_ped_ecf == discount_request.cmd_seq_no
-                    and last_discount.num_cupom == discount_request.cmd_op_seq_no
-                    and float(last_discount.valor_total) == discount_request.cmd_op_value
-                    and last_discount.data == today
+                    str(last_discount.ticket_code).strip()
+                    == str(discount_request.cmd_card_id).strip()
+                    and int(last_discount.num_ped_ecf)
+                    == int(discount_request.cmd_seq_no)
+                    and int(last_discount.num_cupom)
+                    == int(discount_request.cmd_op_seq_no)
+                    and round(float(last_discount.valor_total), 2)
+                    == round(float(discount_request.cmd_op_value), 2)
+                    and str(last_discount.data)[:10] == str(today)
                 ):
                     logger.warning(
                         f"Desconto já lançado hoje para ticket={discount_request.cmd_card_id} "
@@ -348,7 +352,9 @@ class AppController(QObject):
         test_socket = QLocalSocket()
         test_socket.connectToServer(SINGLE_INSTANCE_KEY)
         if test_socket.waitForConnected(500):
-            logger.info("Outra instância já está em execução. Enviando sinal para levantar janela.")
+            logger.info(
+                "Outra instância já está em execução. Enviando sinal para levantar janela."
+            )
             test_socket.write(b"raise")
             test_socket.flush()
             test_socket.waitForBytesWritten(1000)
@@ -368,7 +374,9 @@ class AppController(QObject):
         if client:
             client.waitForReadyRead(1000)
             client.disconnectFromServer()
-        logger.info("Nova tentativa de abertura detectada. Levantando janela existente.")
+        logger.info(
+            "Nova tentativa de abertura detectada. Levantando janela existente."
+        )
         self.show_gui()
         self.window.raise_()
         self.window.activateWindow()
