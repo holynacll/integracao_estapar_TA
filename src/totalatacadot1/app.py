@@ -10,10 +10,12 @@ from loguru import logger
 from totalatacadot1.config import settings
 from totalatacadot1.controllers.app_controller import AppController
 from totalatacadot1.database import init_db
+from totalatacadot1.enums import StoreType
 from totalatacadot1.models import PCPEDCECF
 from totalatacadot1.notification import Notification
 from totalatacadot1.repository import (
     create_pdv_control_item,
+    get_last_control_item_of_the_dat_by_numcupom,
     get_last_notification_not_sent,
     get_last_pdv_pedido,
     get_pdv_control_item_by_num_ped_ecf_and_today,
@@ -58,23 +60,38 @@ def listen_new_pdv_item(
         logger.info("Nenhum pedido encontrado - SKIPPING.")
         return
 
+    is_varejo = settings.store_type == StoreType.VAREJO
+
+    # Identificador do pedido conforme o tipo de loja:
+    # VAREJO rastreia por num_cupom, ATACADO por num_ped_ecf.
+    current_key = (
+        last_pdv_pedido.num_cupom if is_varejo else last_pdv_pedido.num_ped_ecf
+    )
+    key_label = "num_cupom" if is_varejo else "num_ped_ecf"
+
     logger.info(
-        f"Último pedido PDV: num_ped_ecf={last_pdv_pedido.num_ped_ecf}, vl_total={last_pdv_pedido.vl_total}"
+        f"Último pedido PDV: num_ped_ecf={last_pdv_pedido.num_ped_ecf}, "
+        f"num_cupom={last_pdv_pedido.num_cupom}, vl_total={last_pdv_pedido.vl_total}"
     )
     controller.emit_actual_valor_update(last_pdv_pedido.vl_total)
 
     if not settings.use_internal_control:
-        if last_pdv_pedido.num_ped_ecf != last_cupom[0]:
-            last_cupom[0] = last_pdv_pedido.num_ped_ecf
+        if current_key != last_cupom[0]:
+            last_cupom[0] = current_key
             logger.info(
-                f"Novo pedido detectado (sem controle interno): num_ped_ecf={last_pdv_pedido.num_ped_ecf}"
+                f"Novo pedido detectado (sem controle interno): {key_label}={current_key}"
             )
             controller.show_gui()
         return
 
-    pdv_control_item = get_pdv_control_item_by_num_ped_ecf_and_today(
-        last_pdv_pedido.num_ped_ecf
-    )
+    if is_varejo:
+        pdv_control_item = get_last_control_item_of_the_dat_by_numcupom(
+            last_pdv_pedido.num_cupom
+        )
+    else:
+        pdv_control_item = get_pdv_control_item_by_num_ped_ecf_and_today(
+            last_pdv_pedido.num_ped_ecf
+        )
     if pdv_control_item is None:
         pdv_control_item = create_pdv_control_item(
             last_pdv_pedido.num_ped_ecf,
@@ -82,13 +99,13 @@ def listen_new_pdv_item(
             last_pdv_pedido.data,
         )
         logger.info(
-            f"Criando novo item de controle PDV: num_ped_ecf={pdv_control_item.num_ped_ecf}"
+            f"Criando novo item de controle PDV: num_ped_ecf={pdv_control_item.num_ped_ecf}, num_cupom={pdv_control_item.num_cupom}"
             " - Lançamento do desconto liberado."
         )
         controller.show_gui()
     else:
         logger.info(
-            f"Item de controle PDV encontrado: num_ped_ecf={pdv_control_item.num_ped_ecf} - SKIPPING."
+            f"Item de controle PDV encontrado: num_ped_ecf={pdv_control_item.num_ped_ecf}, num_cupom={pdv_control_item.num_cupom} - SKIPPING."
         )
 
 

@@ -24,6 +24,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
+                store-type: ["VAREJO", "ATACADO"]
                 target: ["Windows"]
                 include:
                     - target: "Windows"
@@ -49,6 +50,10 @@ jobs:
                   # Use GitHub's preinstalled JDK 17 for Android builds
                   echo JAVA_HOME="${JAVA_HOME_17_X64:-$JAVA_HOME_17_arm64}" | tee -a ${GITHUB_ENV}
                   ${{ matrix.pre-command }}
+
+            - name: Create .env
+              # Apenas o store_type varia por build; IP/porta usam os defaults do config.py.
+              run: echo "store_type=${{ matrix.store-type }}" > src/totalatacadot1/.env
 
             - name: Build App
               run: |
@@ -86,7 +91,7 @@ jobs:
               if: matrix.target != 'iOS'
               uses: actions/upload-artifact@v4
               with:
-                  name: App-${{ matrix.target }}
+                  name: TotalAtacadoEstapar-${{ matrix.store-type }}
                   path: dist
                   if-no-files-found: error
 
@@ -94,5 +99,5 @@ jobs:
               if: failure()
               uses: actions/upload-artifact@v4
               with:
-                  name: Log-Failure-${{ matrix.target }}
+                  name: Log-Failure-${{ matrix.target }}-${{ matrix.store-type }}
                   path: logs/*

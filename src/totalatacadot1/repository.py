@@ -2,19 +2,26 @@ import datetime
 
 from sqlalchemy import func
 
+from .config import settings
 from .database import db_oracle_context, db_sqlite_context
+from .enums import StoreType
 from .models import PCPEDCECF, ControlPDV, LastAppliedDiscount, NotificationModel
 
 
 def get_last_pdv_pedido() -> PCPEDCECF | None:
     vl_limit = 99999999
     today = datetime.date.today()
+    order_column = (
+        PCPEDCECF.num_cupom
+        if settings.store_type == StoreType.VAREJO
+        else PCPEDCECF.num_ped_ecf
+    )
     with db_oracle_context() as db:
         result = (
             db.query(PCPEDCECF)
             .filter(PCPEDCECF.vl_total < vl_limit)
             .filter(func.trunc(PCPEDCECF.data) == today)
-            .order_by(PCPEDCECF.num_ped_ecf.desc())
+            .order_by(order_column.desc())
             .first()
         )
         if result is not None:

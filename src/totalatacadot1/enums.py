@@ -1,6 +1,17 @@
 from enum import Enum, IntEnum
 
 
+class StoreType(str, Enum):
+    """Define como o último pedido do PDV é identificado.
+
+    VAREJO: busca o último pedido pelo num_cupom.
+    ATACADO: busca o último pedido pelo num_ped_ecf.
+    """
+
+    VAREJO = "VAREJO"
+    ATACADO = "ATACADO"
+
+
 class CommandType(IntEnum):
     """Tipos de comando suportados pela API da Estapar"""
 

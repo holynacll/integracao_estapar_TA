@@ -4,6 +4,8 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .enums import StoreType
+
 
 def _get_project_root() -> Path:
     return Path(__file__).parent
@@ -42,6 +44,10 @@ class Settings(BaseSettings):
 
     # Controle interno de pedidos (False = apenas exibe GUI sem gravar controle)
     use_internal_control: bool = False
+
+    # Tipo de loja: define se o último pedido é buscado por num_cupom (VAREJO)
+    # ou por num_ped_ecf (ATACADO). Definido na geração do instalador.
+    store_type: StoreType = StoreType.ATACADO
 
     # Configuração Pydantic
     model_config = SettingsConfigDict(
